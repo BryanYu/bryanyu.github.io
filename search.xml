@@ -1,0 +1,824 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search> 
+  
+  
+    
+    <entry>
+      <title>[.NET Core]一次注入實作同一個Interface的多個Class</title>
+      <link href="2020/10/07/NetCoreDISkill/"/>
+      <url>2020/10/07/NetCoreDISkill/</url>
+      
+        <content type="html"><![CDATA[<p>最近在工作上的專案遇到需要注入同一個Interface的多個Class，覺得一行一行加有點麻煩，未來新增Class也還要記得來補注入，後來查了官方文件後，加上一點Reflection技巧就可以達到一次注入多個Class囉</p><a id="more"></a><p>範例程式中我使用ASP.NET Core 專案來示範，Interface為 <code>ISample</code>，搭配兩個Class(<code>SampleA</code>與<code>SampleB</code>)，這兩個Class都有實作 <code>ISample</code></p><p><img src="/2020/10/07/NetCoreDISkill/NetCoreDISkill-01.jpg" alt></p><h2 id="找出需要注入的Class且有實作Interface的Type"><a href="#找出需要注入的Class且有實作Interface的Type" class="headerlink" title="找出需要注入的Class且有實作Interface的Type"></a>找出需要注入的Class且有實作Interface的Type</h2><p>在<code>Startup.cs</code>，利用Reflection的方式找出需要注入的型別 </p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">var settingTypes = typeof(ISample).Assembly.GetTypes()</span><br><span class="line">    .Where(item =&gt; item.GetInterfaces().Contains(typeof(ISample)));</span><br></pre></td></tr></table></figure><h2 id="建立ServiceDescriptor後-加入IServiceCollection"><a href="#建立ServiceDescriptor後-加入IServiceCollection" class="headerlink" title="建立ServiceDescriptor後 加入IServiceCollection"></a>建立ServiceDescriptor後 加入IServiceCollection</h2><p>接著建立<code>ServiceDescriptor</code> 指定ServiceType、ImplementType、ServiceLifetime，在加入到IServiceCollection<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">foreach (var type in settingTypes)</span><br><span class="line">            &#123;</span><br><span class="line">                var serviceDescriptor = new ServiceDescriptor(typeof(ISample), type, ServiceLifetime.Scoped);</span><br><span class="line">                services.Add(serviceDescriptor);</span><br><span class="line">            &#125;</span><br></pre></td></tr></table></figure></p><p>利用ServiceDescriptor注入的方式也等同於 service.Add{Lifetime}注入<br>到這邊注入的部分就完成了</p><p>實際執行範例程式 可以看到Controller的Contructor有成功取得多個實體</p><p><img src="/2020/10/07/NetCoreDISkill/NetCoreDISkill-02.jpg" alt></p><p>就可以依照不同輸入參數取得不同的實體執行</p><p>最後附上範例程式:<br><a href="https://github.com/BryanYu/DotNETCoreDIMulitple" target="_blank" rel="noopener">範例程式</a></p><p>參考資料:<br><a href="https://docs.microsoft.com/zh-tw/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-3.1" target="_blank" rel="noopener">.NET Core 中的相依性插入</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> ASP.NET Core </tag>
+            
+            <tag> .NET Core </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[ASP.NET Core]如何使用SwaggerAPI說明文件</title>
+      <link href="2019/12/29/AspNetCoreSwagger/"/>
+      <url>2019/12/29/AspNetCoreSwagger/</url>
+      
+        <content type="html"><![CDATA[<p>在開發API站台時，時常要與前端開發者做對接，Swagger提供了很完善的說明文件，也可以立即做測試<br>接下來介紹如何ASP.NET Core中使用Swagger產生說明文件</p><a id="more"></a><h2 id="安裝套件"><a href="#安裝套件" class="headerlink" title="安裝套件"></a>安裝套件</h2><p>Swagger主要有三個套件</p><ol><li>Swashbuckle.AspNetCore.Swagger: 公開 <code>SwaggerDocument</code> 物件作為 JSON 端點。</li><li>Swashbuckle.AspNetCore.SwaggerGen: 可以從Model、Controller、Router 等 建立 <code>SwaggerDocument</code></li><li>Swashbuckle.AspNetCore.SwaggerUI: 可解析 <code>Swagger Json</code> 來產生畫面</li></ol><p>從 Visual Studio 中可以在套件管理員中找到這三個套件<br><img src="/2019/12/29/AspNetCoreSwagger/AspNetCoreSwagger-01.jpg" alt></p><h2 id="設定Swagger-MiddleWare"><a href="#設定Swagger-MiddleWare" class="headerlink" title="設定Swagger MiddleWare"></a>設定Swagger MiddleWare</h2><p>在<code>ConfigureServices</code> 加入 Swagger產生器</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public void ConfigureServices(IServiceCollection services)</span><br><span class="line">&#123;</span><br><span class="line">    services.AddControllers();</span><br><span class="line">    /// 加入Swagger產生器到服務集合</span><br><span class="line">    services.AddSwaggerGen(c =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        c.SwaggerDoc(&quot;v1&quot;, new OpenApiInfo</span><br><span class="line">        &#123;</span><br><span class="line">            Title = &quot;My API&quot;, Version = &quot;V1&quot;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>在<code>Startup.Configure</code>方法中，啟用Swagger Middleware 用來產生json文件與Swagger UI</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">public void Configure(IApplicationBuilder app, IWebHostEnvironment env)</span><br><span class="line">&#123;</span><br><span class="line">    if (env.IsDevelopment())</span><br><span class="line">    &#123;</span><br><span class="line">        app.UseDeveloperExceptionPage();</span><br><span class="line"></span><br><span class="line">    /// 使用 Swagger 產生json端點文件</span><br><span class="line">    app.UseSwagger()</span><br><span class="line">    /// 啟用SwaggerUI 並根據Swagger.json產生畫面</span><br><span class="line">    app.UseSwaggerUI(c =&gt; &#123; c.SwaggerEndpoint(&quot;/swagger/v1/swagger.json&quot;, &quot;My API V1&quot;); &#125;)</span><br><span class="line">    app.UseHttpsRedirection()</span><br><span class="line">    app.UseRouting()</span><br><span class="line">    app.UseAuthorization()</span><br><span class="line">    app.UseEndpoints(endpoints =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        endpoints.MapControllers();</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>接著編譯一下並啟動 瀏覽<code>https://localhost:&lt;port&gt;/swagger</code> 就可以看到Swagger的API說明文件了</p><p><img src="/2019/12/29/AspNetCoreSwagger/AspNetCoreSwagger-02.jpg" alt></p><p>剛剛設定的Json端點文件會產生在 <code>https://localhost:&lt;port&gt;/swagger/v1/swagger.json</code> </p><h2 id="自訂Swagger-API-說明資訊"><a href="#自訂Swagger-API-說明資訊" class="headerlink" title="自訂Swagger API 說明資訊"></a>自訂Swagger API 說明資訊</h2><p>你也可以自行設定額外的Swagger API的說明資訊 在 <code>ConfigureServices</code> 設定</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">services.AddSwaggerGen(c =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    c.SwaggerDoc(&quot;v1&quot;, new OpenApiInfo</span><br><span class="line">    &#123;</span><br><span class="line">        Title = &quot;My API&quot;, </span><br><span class="line">        Version = &quot;V1&quot;,</span><br><span class="line">        Contact = new OpenApiContact &#123; Name = &quot;Bryan&quot;, Email = &quot;d58526@gmail.com&quot;&#125;,</span><br><span class="line">        Description =&quot;我的第一個測試API&quot;,</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure><p><img src="/2019/12/29/AspNetCoreSwagger/AspNetCoreSwagger-03.jpg" alt></p><h2 id="在Swagger上加入Controller中或Model的註解"><a href="#在Swagger上加入Controller中或Model的註解" class="headerlink" title="在Swagger上加入Controller中或Model的註解"></a>在Swagger上加入Controller中或Model的註解</h2><p>在程式當中所寫的註解，都可以透過Swagger產生說明文件，讓使用API的人更加了解API的意義及所需參數</p><p>我自訂了一個簡單的Controller</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">/// &lt;summary&gt;</span><br><span class="line">/// 使用者服務</span><br><span class="line">/// &lt;/summary&gt;</span><br><span class="line">[ApiController]</span><br><span class="line">[Route(&quot;api/[controller]&quot;)]</span><br><span class="line">public class UserController : ControllerBase</span><br><span class="line">&#123;</span><br><span class="line">    private List&lt;UserInfo&gt; _userInfos = new List&lt;UserInfo&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        new UserInfo &#123;Id = 1, Account = &quot;Test1&quot;, Name = &quot;Test1Name&quot;, Phone = &quot;123456&quot;&#125;,</span><br><span class="line">        new UserInfo &#123;Id = 2, Account = &quot;Test2&quot;, Name = &quot;Test2Name&quot;, Phone = &quot;789123&quot;&#125;,</span><br><span class="line">        new UserInfo &#123;Id = 3, Account = &quot;Test3&quot;, Name = &quot;Test3Name&quot;, Phone = &quot;012345&quot;&#125;,</span><br><span class="line">    &#125;;</span><br><span class="line">    </span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 取得使用者清單</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    /// &lt;returns&gt;&lt;/returns&gt;</span><br><span class="line">    [HttpGet]</span><br><span class="line">    public IEnumerable&lt;UserInfo&gt; Get()</span><br><span class="line">    &#123;</span><br><span class="line">        return this._userInfos;</span><br><span class="line">    &#125;</span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 取得單一使用者</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    /// &lt;param name=&quot;id&quot;&gt;編號&lt;/param&gt;</span><br><span class="line">    /// &lt;returns&gt;&lt;/returns&gt;</span><br><span class="line">    [HttpGet(&quot;&#123;id&#125;&quot;)]</span><br><span class="line">    public UserInfo Get(int id)</span><br><span class="line">    &#123;</span><br><span class="line">        return this._userInfos.FirstOrDefault(item =&gt; item.Id == id);</span><br><span class="line">    &#125;</span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 新增使用者</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    /// &lt;param name=&quot;userInfo&quot;&gt;使用者資訊&lt;/param&gt;</span><br><span class="line">    [HttpPost]</span><br><span class="line">    public void Post([FromBody]UserInfo userInfo)</span><br><span class="line">    &#123;</span><br><span class="line">        this._userInfos.Add(userInfo);</span><br><span class="line">    &#125;</span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 更新使用者名稱</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    /// &lt;param name=&quot;id&quot;&gt;編號&lt;/param&gt;</span><br><span class="line">    /// &lt;param name=&quot;name&quot;&gt;名稱&lt;/param&gt;</span><br><span class="line">    [HttpPut(&quot;&#123;id&#125;&quot;)]</span><br><span class="line">    public void Put(int id, [FromBody]string name)</span><br><span class="line">    &#123;</span><br><span class="line">        var user = this._userInfos.FirstOrDefault(item =&gt; item.Id == id);</span><br><span class="line">        user.Name = name;</span><br><span class="line">    &#125;</span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 刪除使用者</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    /// &lt;param name=&quot;id&quot;&gt;編號&lt;/param&gt;</span><br><span class="line">    [HttpDelete(&quot;&#123;id&#125;&quot;)]</span><br><span class="line">    public void Delete(int id)</span><br><span class="line">    &#123;</span><br><span class="line">        this._userInfos.RemoveAll(item =&gt; item.Id == id);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>自訂了一個簡單的類別 <code>UserInfo</code><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">/// &lt;summary&gt;</span><br><span class="line">/// 使用者資訊</span><br><span class="line">/// &lt;/summary&gt;</span><br><span class="line">public class UserInfo</span><br><span class="line">&#123;</span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 編號</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    public int Id &#123; get; set; &#125;</span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 帳號</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    public string Account &#123; get; set; &#125;</span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 名稱</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    public string Name &#123; get; set; &#125;</span><br><span class="line">    /// &lt;summary&gt;</span><br><span class="line">    /// 電話號碼</span><br><span class="line">    /// &lt;/summary&gt;</span><br><span class="line">    public string Phone &#123; get; set; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p>接下來要讓專案產生註解的XML 並加入到Swagger中</p><p>打開專案檔 加入<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">PropertyGroup</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">GenerateDocumentationFile</span>&gt;</span>true<span class="tag">&lt;/<span class="name">GenerateDocumentationFile</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">PropertyGroup</span>&gt;</span></span><br></pre></td></tr></table></figure></p><p><img src="/2019/12/29/AspNetCoreSwagger/AspNetCoreSwagger-04.jpg" alt></p><p>就會在編譯的時候 在組態的同名資料夾下會有檔名與專案同名的XML文件<br>這個XML文件的內容就是程式碼的註解</p><p><img src="/2019/12/29/AspNetCoreSwagger/AspNetCoreSwagger-05.jpg" alt></p><p>接下來要將這個註解XML檔案加入到Swagger中 在<code>ConfigureServices</code>加入設定</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">services.AddSwaggerGen(c =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    c.SwaggerDoc(&quot;v1&quot;, new OpenApiInfo</span><br><span class="line">    &#123;</span><br><span class="line">        Title = &quot;My API&quot;,</span><br><span class="line">        Version = &quot;V1&quot;,</span><br><span class="line">        Contact = new OpenApiContact &#123;Name = &quot;Bryan&quot;, Email = &quot;d58526@gmail.com&quot;&#125;,</span><br><span class="line">        Description = &quot;我的第一個測試API&quot;,</span><br><span class="line">    &#125;);</span><br><span class="line">    </span><br><span class="line">    /// 加入xml檔案到swagger</span><br><span class="line">    var xmlFile = $&quot;&#123;Assembly.GetExecutingAssembly().GetName().Name&#125;.xml&quot;;</span><br><span class="line">    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);</span><br><span class="line">    c.IncludeXmlComments(xmlPath);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure><p>重新執行就會看到剛剛所寫的程式碼註解，也有完整的類別說明，提高API文件的可讀性</p><p><img src="/2019/12/29/AspNetCoreSwagger/AspNetCoreSwagger-06.jpg" alt></p><p><a href="https://github.com/BryanYu/AspNetCoreSwaggerSample" target="_blank" rel="noopener">範例程式</a></p><h2 id="結論"><a href="#結論" class="headerlink" title="結論"></a>結論</h2><p>透過Swagger產生API說明文件的方式，可以節省開發人員撰寫額外的文檔時間，又可以解決文件與程式碼的同步問題，同時產生的文檔也可以立即進行測試，對於前後端開發者的對接可以增加開發效率。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> ASP.NET Core </tag>
+            
+            <tag> Swagger </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[ASP.NET Core學習筆記]03-中介層(Middleware)</title>
+      <link href="2019/03/26/AspNetCore03/"/>
+      <url>2019/03/26/AspNetCore03/</url>
+      
+        <content type="html"><![CDATA[<p>[ASP.NET Core學習筆記]03-中介層(Middleware)</p><a id="more"></a><p>在ASP.NET Core中，使用中介層(Middleware)，來組成Request Pipeline，每一個中介層可以決定</p><ol><li>決定是否要傳送要求到下一個中介層</li><li>可以在呼叫下一個中介層的之前或之後，執行工作</li></ol><p>下圖為Middleware概念圖<br><img src="/2019/03/26/AspNetCore03/AspnetCore03-01.png" alt></p><h2 id="使用IApplicationBuilder來建立Middleware"><a href="#使用IApplicationBuilder來建立Middleware" class="headerlink" title="使用IApplicationBuilder來建立Middleware"></a>使用IApplicationBuilder來建立Middleware</h2><p>ASP.NET Core可以透過 <code>Run</code> <code>Use</code> <code>Map</code>等擴充方法來建立自己的Middleware</p><p>而第一個<code>Run</code>會終止Request pipeline，<code>Use</code>可以把多個Middleware串連在一起，<code>Map</code>為可以對應Route設定而執行不同的Request pipeline，接下來我們就來嘗試一下這三種的區別。</p><p>app.Run:</p><pre><code>public void Configure(IApplicationBuilder app, IHostingEnvironment env){    //app.Run 會終止所有Request Pipeline 下面的Middle01不會執行    app.Run(async context =&gt; { await context.Response.WriteAsync(&quot;Hello world&quot;); });    app.Use(        async (context, next) =&gt;            {                Console.WriteLine(&quot;BeforeMiddleware01&quot;);                await next.Invoke();                Console.WriteLine(&quot;AfterMiddleware01&quot;);            });}</code></pre><p>app.Use </p><pre><code>//app.Use 會將要求傳至下一個Middleware//以下設定呼叫的順序會是 BeforeMiddleware01 -&gt; BeforeMiddleware02 -&gt; AfterMiddleware02 -&gt; AfterMiddleware01        app.Use(            async (context, next) =&gt;                {                    Console.WriteLine(&quot;BeforeMiddleware01&quot;);                    await next.Invoke();                    Console.WriteLine(&quot;AfterMiddleware01&quot;);                });        app.Use(            async (context, next) =&gt;                {                    Console.WriteLine(&quot;BeforeMiddleware02&quot;);                    await next.Invoke();                    Console.WriteLine(&quot;AfterMiddleware02&quot;);                });</code></pre><p>實際執行結果<br><img src="/2019/03/26/AspNetCore03/AspnetCore03-02.jpg" alt></p><p>app.Map<br>    //app.Map 是app.Run的擴充，可以根據route路徑來套用app.Run的MiddleWare </p><pre><code>app.Map(&quot;/map1&quot;,            config =&gt;            {                config.Run(async (context) =&gt;                {                    await context.Response.WriteAsync(&quot;Map Test 1&quot;);                });            });app.Map(&quot;/map2&quot;,    config =&gt;    {        config.Run(async (context) =&gt;        {            await context.Response.WriteAsync(&quot;Map Test 2&quot;);        });     });</code></pre><p>實際執行結果 </p><p><img src="/2019/03/26/AspNetCore03/AspnetCore03-03.png" alt></p><h2 id="順序"><a href="#順序" class="headerlink" title="順序"></a>順序</h2><p><code>Startup.Configure</code> 方法中的MiddleWare可以定義叫用與回應的順序，對於效能、安全、功能性來說，這些順序很重要</p><ol><li>例外狀況/錯誤處理 </li><li>HTTPS 重新導向 (UseHttpsRedirection)</li><li>靜態檔案 (UseStaticFiles)</li><li>Cookie 原則 (UseCookiePolicy)</li><li>驗證 (UseAuthentication)</li><li>工作階段 (UseSession)</li><li>MVC (UseMvc)</li></ol><p>ASP.NET Core 有內建提供一些MiddleWare可供使用<br>請參考<a href="https://docs.microsoft.com/zh-tw/aspnet/core/fundamentals/middleware/?view=aspnetcore-2.2#built-in-middleware" target="_blank" rel="noopener">官方說明文件</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> ASP.NET Core </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[ASP.NET Core學習筆記]02-相依性注入(Dependency Injection)</title>
+      <link href="2019/03/18/AspNetCore02/"/>
+      <url>2019/03/18/AspNetCore02/</url>
+      
+        <content type="html"><![CDATA[<p>[ASP.NET Core學習筆記]02-相依性注入(Dependency Injection)</p><a id="more"></a><h2 id="相依性注入-Dependency-Injection"><a href="#相依性注入-Dependency-Injection" class="headerlink" title="相依性注入(Dependency Injection)"></a>相依性注入(Dependency Injection)</h2><p>用來在類別與相依性之間，達成控制反轉的技術。可以讓類別相依於抽象，而不是實作，進以降低類別耦合度。</p><h2 id="服務生命週期-Service-Lifetime"><a href="#服務生命週期-Service-Lifetime" class="headerlink" title="服務生命週期(Service Lifetime)"></a>服務生命週期(Service Lifetime)</h2><p>ASP.NET Core可以設定以下幾個服務生命週期</p><ul><li>Transient: 在每一次的Request都會建立</li><li>Scoped: 在每一次的Request中只會建立一次</li><li>Singleton: 第一次收到要求時，會建立一個實體，後續的要求會使用同一個實體</li></ul><p>實際以Code的方式來體驗一下這三個生命週期的差別</p><p>我建立了<code>TestScopedService</code>、<code>TestSingletonService</code>、<code>TestTransientService</code>，並建立相對應的Interface，實作<code>GetGuid()</code>方法<br>代表三種不同生命周期的類別，以<code>ITestScopedService</code>為例，其餘以此類推</p><p><code>ITestScopedService</code> 介面</p><pre><code>public interface ITestScopedService{    Guid GetGuid();}</code></pre><p><code>TestScopedService</code>類別</p><pre><code>public class TestScopedService : ITestScopedService{    private readonly Guid _guid;    public TestScopedService()    {        this._guid = Guid.NewGuid();    }    public Guid GetGuid()    {        return this._guid;    }}</code></pre><p>建立好之後在<code>Startup.ConfigureServices</code>中註冊</p><pre><code>services.AddTransient&lt;ITestTransientService, TestTransientService&gt;();services.AddScoped&lt;ITestScopedService, TestScopedService&gt;();services.AddSingleton&lt;ITestSingletonService, TestSingletonService&gt;();</code></pre><p>並在Controller與自訂的Service中使用這三個類別，回傳的Guid結果如下</p><p>Request第一次的結果</p><pre><code>{    &quot;controller&quot;: {        &quot;scoped&quot;: &quot;9251708d-b037-4134-a61e-3ac257fda230&quot;,        &quot;transient&quot;: &quot;d4110587-b117-4972-8a75-0ff3a010842f&quot;,        &quot;singleton&quot;: &quot;a306ad7b-e3b6-4953-b519-235f01a84c02&quot;    },    &quot;services&quot;: {        &quot;scoped&quot;: &quot;9251708d-b037-4134-a61e-3ac257fda230&quot;,        &quot;transient&quot;: &quot;f75d74db-c5ad-4e1c-8b81-bbcb6717b368&quot;,        &quot;singleton&quot;: &quot;a306ad7b-e3b6-4953-b519-235f01a84c02&quot;    }}</code></pre><p>Request第二次的結果</p><pre><code>{    &quot;controller&quot;: {        &quot;scoped&quot;: &quot;59b4e771-65a9-4113-a690-98feaa34a8cc&quot;,        &quot;transient&quot;: &quot;22c3dc54-146a-4830-b0b1-6a85e0fc8b20&quot;,        &quot;singleton&quot;: &quot;a306ad7b-e3b6-4953-b519-235f01a84c02&quot;    },    &quot;services&quot;: {        &quot;scoped&quot;: &quot;59b4e771-65a9-4113-a690-98feaa34a8cc&quot;,        &quot;transient&quot;: &quot;78edee78-214c-4b34-936e-1ee6ecf1ac92&quot;,        &quot;singleton&quot;: &quot;a306ad7b-e3b6-4953-b519-235f01a84c02&quot;    }}</code></pre><p>在接收到Request建立實體時，<code>Scoped</code>會建立一個實體，直到Request結束時都使用同一個。<br>而<code>Transient</code>則是在每一次要使用服務時建立實體都會是新的。<code>Singleton</code>則是只會建立一個實體，<br>在接收到不管幾個要求都是使用同一個實體。</p><h2 id="針對相依性注入設計服務的注意事項"><a href="#針對相依性注入設計服務的注意事項" class="headerlink" title="針對相依性注入設計服務的注意事項"></a>針對相依性注入設計服務的注意事項</h2><ul><li>設計<code>服務(Service)</code>時使用DI的方式取得相依性</li><li>避免<code>static</code>方法呼叫</li><li>避免在<code>服務(Service)</code>中直接<code>new class</code>。這樣會耦合特定實作</li><li>類別盡量維持小型且容易測試的狀態</li><li>如果是以程式碼加入類別實體到DI Container，Container不會自動Dispose，例如<br>  <code>services.AddSingleton&lt;Service3&gt;(new Service3());</code></li></ul><h2 id="相依性注入的最佳作法"><a href="#相依性注入的最佳作法" class="headerlink" title="相依性注入的最佳作法"></a>相依性注入的最佳作法</h2><ul><li>C#不支援<code>非同步建構式(Construtor)</code>，建議是以<code>同步</code>方式解析服務後使用服務的<code>非同步方法</code></li><li>避免在<code>服務容器(Container)</code>中儲存或使用資料與設定，例如組態設定。</li><li>避免使用<code>GetService</code>來取得實體</li><li>避免使用靜態方式存取服務，例如用<code>IApplicationBuilder.ApplicationServices</code>取得</li><li>避免用靜態方式存取<code>HttpContext</code>，(例如 IHttpContextAccessor.HttpContext)</li></ul><p><a href="https://github.com/BryanYu/Asp.net-Core-Practice/tree/master/AspNetCorePractice/02-DependencyInjection" target="_blank" rel="noopener">我的練習範例 02-DependencyInjection</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> ASP.NET Core </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[ASP.NET Core學習筆記]01-Startup類別</title>
+      <link href="2019/03/17/AspNetCore01/"/>
+      <url>2019/03/17/AspNetCore01/</url>
+      
+        <content type="html"><![CDATA[<p>這個系列文章為自己的研究與學習筆記 並會在文末附上我自己的實作 </p><p>如有任何問題請以官方技術文件為主<a href="https://docs.microsoft.com/zh-tw/aspnet/?view=aspnetcore-2.2#pivot=core" target="_blank" rel="noopener">ASP.NET Core官方技術文件</a></p><a id="more"></a><h2 id="Startup類別"><a href="#Startup類別" class="headerlink" title="Startup類別"></a>Startup類別</h2><p>ASP.NET Core啟動類別，它的功能包含</p><ul><li>設定應用程式要使用的服務(Service)，並透過相依性注入(DI)的方式，讓 ASP.NET Core的應用程式可以使用</li><li><p>建立應用程式的Request Process Pipeline (MiddleWare)</p><pre><code>public class Startup{    // This method gets called by the runtime. Use this method to add services to the container.    // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940    public void ConfigureServices(IServiceCollection services)    {    }    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.    public void Configure(IApplicationBuilder app, IHostingEnvironment env)    {        if (env.IsDevelopment())        {            app.UseDeveloperExceptionPage();        }        app.Run(async (context) =&gt;        {            await context.Response.WriteAsync(&quot;Hello World!&quot;);        });    }}</code></pre></li></ul><p>其中<code>ConfigureServices</code>為設定相依性注入(DI)，將服務加入至Container。<code>Configure</code>則設定應用程式的MiddleWare。<br>應用程式執行時會先呼叫<code>ConfigureServices</code>再呼叫<code>Configure</code>。</p><p>最後我實作了一個簡單的Service，並透過<code>ConfigureServices</code>的相依性注入(DI)，並在<code>Configure</code>中使用我注入的Service，來體驗ASP.NET Core的Startup類別</p><p><a href="https://github.com/BryanYu/Asp.net-Core-Practice/tree/master/AspNetCorePractice/01-Startup" target="_blank" rel="noopener">我的練習範例 01-Startup</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> ASP.NET Core </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[WebAPI]為WebAPI增加版本號-使用Swagger套件</title>
+      <link href="2018/10/08/SwaggerVersion/"/>
+      <url>2018/10/08/SwaggerVersion/</url>
+      
+        <content type="html"><![CDATA[<p>最近在工作上遇到要更新API的需求，但又要維持舊版API的向下相容性，</p><p>在<a href="WebAPIGoodParts.md">WebAPI的設計與開發</a>的文章中提到了API版本管理</p><p>就來使用Swagger來實作API版本管理吧！</p><a id="more"></a><h2 id="安裝Swagger與設定產生程式註解XML"><a href="#安裝Swagger與設定產生程式註解XML" class="headerlink" title="安裝Swagger與設定產生程式註解XML"></a>安裝Swagger與設定產生程式註解XML</h2><p>首先要從nuget上安裝Swagger套件<br><img src="/2018/10/08/SwaggerVersion/SwaggerVersion-01.jpg" alt></p><p>安裝完成後，會在<code>App_Start\</code>有一個<code>SwaggerCofig.cs</code>的檔案，這個檔案是用來設定Swagger的</p><p>接著設定專案產出程式註解的XML文件，在專案按右鍵的<code>屬性</code>，選擇<code>建置</code>，在<code>輸出</code>的區塊，勾選<br><code>XML文件檔案</code>，我預設是產出到<code>App_Data\</code>的路徑</p><p><img src="/2018/10/08/SwaggerVersion/SwaggerVersion-02.jpg" alt></p><p>接下來回到<code>SwaggerConfig.cs</code>檔案，尋找<code>GetXmlCommentsPath()</code>這個Method，把它解開註解然後實作這個method，這個method是用來指定我們剛剛上面所設定的程式註解XML路徑，這樣swagger才有辦法產出畫面與說明</p><pre><code>private static string GetXmlCommentsPath(){    return AppDomain.CurrentDomain.BaseDirectory + &quot;\\App_Data\\&quot; + &quot;SwaggerVersionExample.xml&quot;;}</code></pre><p>到這邊的設定都差不多結束了，基本的Swagger的功能就可以使用了</p><p>Swagger的預設路徑會在<code>swagger/ui/index</code>，如果想要一打開站台就連到swagger首頁，可以在Route上設定，記得要擺在Route的第一個設定位置</p><pre><code>config.Routes.MapHttpRoute(name: &quot;SwaggerIndex&quot;,    routeTemplate: &quot;&quot;,    defaults: null,    constraints: null,    handler: new RedirectHandler((message =&gt; message.RequestUri.ToString()), &quot;swagger&quot;));</code></pre><h2 id="建立不同版本號的Controller與設定swagger"><a href="#建立不同版本號的Controller與設定swagger" class="headerlink" title="建立不同版本號的Controller與設定swagger"></a>建立不同版本號的Controller與設定swagger</h2><p>我在Controller資料夾下建立不同版本號的Controller，要注意的是<code>RoutePrefix</code>要帶入版本號資訊</p><p><img src="/2018/10/08/SwaggerVersion/SwaggerVersion-03.jpg" alt></p><p>接下來設定<code>SwaggerConfig.cs</code>中，多版本號的支援</p><p>找到<code>c.SingleApiVersion(&quot;v1&quot;, &quot;SwaggerVersionExample&quot;);</code> 並將它註解起來，同時找到<code>MultipleApiVersions</code>區塊的相關程式碼，解開註解並實作<code>ResolveVersionSupportByRouteConstraint</code>method，這個method是用來確認是否有多個版本的Controller</p><pre><code>private static bool ResolveVersionSupportByRouteConstraint(ApiDescription apiDesc, string targetApiVersion){    return apiDesc.ActionDescriptor.ControllerDescriptor.ControllerType.FullName.Contains(targetApiVersion);}</code></pre><p>接著尋找<code>EnableDiscoveryUrlSelector</code>這個method，並解開註解，這個是可以在swagger的介面上選擇版本</p><p>就來執行一下看成果吧</p><iframe height="950" width="1500" src="SwaggerVersion-04.gif"></iframe><p>未來在增加新版本api的時候就可以與舊版本同時相容，使用api的開發者只要修改版本對應的route就可以使用不同版本的api了。</p><p>最後附上我實作的原始碼<br><a href="https://github.com/BryanYu/SwaggerVersionSample" target="_blank" rel="noopener">範例程式</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> WebAPI </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Hangfire]02-hangfire進階設定</title>
+      <link href="2018/09/04/Hangfire02/"/>
+      <url>2018/09/04/Hangfire02/</url>
+      
+        <content type="html"><![CDATA[<p>hangfire進階設定</p><a id="more"></a><p>##權限設定</p><p>hangfire的儀錶板會顯示目前執行的method與參數，為了不要讓有心人士拿來應用，hangfire提供<code>IDashboardAuthorizationFilter</code>來實作自訂的權限控管機制</p><pre><code>public class MyAuthorizationFilter : IDashboardAuthorizationFilter{    public bool Authorize(DashboardContext context)    {        var owinContext = new OwinContext(context.GetOwinEnvironment());        return owinContext.Authentication.User.Identity.IsAuthenticated;    }}</code></pre><p>這邊使用的是owin的驗證機制 完整的實作可以參考我的範例程式</p><pre><code>var authentication = HttpContext.GetOwinContext().Authentication;var claims = new List&lt;Claim&gt;();claims.Add(new Claim(ClaimTypes.Name, &quot;admin&quot;));claims.Add(new Claim(ClaimTypes.Role, &quot;admin&quot;));var identity = new ClaimsIdentity(claims, &quot;HangfireLogin&quot;);authentication.SignIn(new AuthenticationProperties() { IsPersistent = true }, identity);return Redirect(&quot;hangfire&quot;);</code></pre><p><code>startup.cs</code>設定，這邊要注意的是順序，<code>UseCookieAuthentication</code>一定要放在<code>UseHangfireDashboard</code>之前，否則會發生exception</p><pre><code>app.UseCookieAuthentication(            new CookieAuthenticationOptions()            {                AuthenticationType = &quot;HangfireLogin&quot;,                LoginPath = new PathString(&quot;/Login/Index&quot;),            });        app.UseHangfireDashboard(            &quot;/hangfire&quot;,            new DashboardOptions() { Authorization = new[] { new MyAuthorizationFilter() } });        app.UseHangfireServer();</code></pre><h2 id="修改路徑"><a href="#修改路徑" class="headerlink" title="修改路徑"></a>修改路徑</h2><h3 id="修改儀表板預設路徑"><a href="#修改儀表板預設路徑" class="headerlink" title="修改儀表板預設路徑"></a>修改儀表板預設路徑</h3><p>預設是<code>/hangfire</code> 可以修改成自訂的路徑</p><pre><code>app.UseHangfireDashboard(&quot;/jobs&quot;);</code></pre><h3 id="修改返回的預設路徑"><a href="#修改返回的預設路徑" class="headerlink" title="修改返回的預設路徑"></a>修改返回的預設路徑</h3><p>儀錶板右上角的連結 在<code>DashboardOptions</code>設定<code>AppPath</code><br><img src="/2018/09/04/Hangfire02/Hangfire02-01.jpg" alt></p><pre><code>var options = new DashboardOptions { AppPath = VirtualPathUtility.ToAbsolute(&quot;~&quot;) };</code></pre><p>最後附上我的實作範例程式碼 </p><p><a href="https://github.com/BryanYu/HangfireSample" target="_blank" rel="noopener">HangfireSample</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Hangfire]01-使用hangfire來執行background job</title>
+      <link href="2018/09/03/Hangfire01/"/>
+      <url>2018/09/03/Hangfire01/</url>
+      
+        <content type="html"><![CDATA[<p>最近在工作上使用hangfire來執行一些background job作業</p><p>以往background job都採用console應用程式搭配Task manager實作</p><p>這次選擇使用hangfire </p><p>這個系列文會分享如何使用與設定hangfire </p><a id="more"></a><h1 id="Hangfire簡介"><a href="#Hangfire簡介" class="headerlink" title="Hangfire簡介"></a>Hangfire簡介</h1><p><a href="https://www.hangfire.io/" target="_blank" rel="noopener">官方網站</a></p><p>可以很方便的用來執行backgroud job，不需要額外的windows service。支援幾種類型的job</p><ul><li>Fire-and-forgot jobs: 站台啟動後自動執行<code>一次</code></li><li>Delayed jobs: 可設定時間區間，每間格時間區間執行<code>一次</code></li><li>Recurring jobs: 可設定<code>Cron</code>敘述，並重複執行<code>多次</code></li><li>Continuations: 在某個job執行完後接續執行</li></ul><h2 id="安裝與啟動"><a href="#安裝與啟動" class="headerlink" title="安裝與啟動"></a>安裝與啟動</h2><ul><li><p>首先先新增一個 .NET MVC站台，並從Nuget上下載最新版的套件<br><img src="/2018/09/03/Hangfire01/Hangfire01-01.jpg" alt></p></li><li><p>接著新增一個<code>owin</code>的<code>startup.cs</code>，用來增加hangfire的儀錶板與資料庫連線設定</p><pre><code>[assembly: OwinStartup(typeof(HangfireSample.Startup))]namespace HangfireSample{    public class Startup    {        public void Configuration(IAppBuilder app)        {            var connectionString = ConfigurationManager.ConnectionStrings[&quot;HangfireConnection&quot;].ConnectionString;            GlobalConfiguration.Configuration.UseSqlServerStorage(connectionString);            app.UseHangfireDashboard();            app.UseHangfireServer();        }    }}</code></pre></li></ul><h2 id="新增job與執行"><a href="#新增job與執行" class="headerlink" title="新增job與執行"></a>新增job與執行</h2><p>新增上述四種job</p><pre><code>public class JobConfig{    public static void Register()    {        // fire and got:站台啟動後只會執行一次        BackgroundJob.Enqueue(() =&gt; Console.WriteLine(&quot;Fire and forgot&quot;));        // delay: 設定時間間隔，每隔時間間隔執行一次        BackgroundJob.Schedule(() =&gt; Console.WriteLine(&quot;Delayed&quot;), TimeSpan.FromDays(1));        // recurring: 設定cron敘述，重複執行多次        RecurringJob.AddOrUpdate(() =&gt; Console.WriteLine(&quot;Daily Job&quot;), Cron.Daily);        // continue: 在某個job執行完後接續執行        var id = BackgroundJob.Enqueue(() =&gt; Console.WriteLine(&quot;Hello, &quot;));        BackgroundJob.ContinueWith(id, () =&gt; Console.WriteLine(&quot;world!&quot;));    }}</code></pre><p>儀錶板會顯示目前job的執行狀況<br><img src="/2018/09/03/Hangfire01/Hangfire01-02.jpg" alt></p><p>也可以直接手動觸發定期的job，讓他馬上執行<br><img src="/2018/09/03/Hangfire01/Hangfire01-03.jpg" alt></p><p>如果有job發生失敗的狀況，固定時間他會自己重試，直到重試次數滿了為止<br><img src="/2018/09/03/Hangfire01/Hangfire01-04.jpg" alt></p><p>這個功能非常好用，以往寫console應用程式，在程式發生exception時，要撰寫自動回覆的程式碼，但使用hangfire之後，利用它會自動重試的機制，讓我們在開發上比較便利</p><p>這些job的資料都會存放在DB(或者是其他設定的storage)<br><img src="/2018/09/03/Hangfire01/Hangfire01-05.jpg" alt></p><p>最後附上我的實作範例程式碼 </p><p><a href="https://github.com/BryanYu/HangfireSample" target="_blank" rel="noopener">HangfireSample</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>WebAPI的設計與開發(WEB API: The Good Parts) (簡體中文) 筆記</title>
+      <link href="2018/07/25/WebAPIGoodParts/"/>
+      <url>2018/07/25/WebAPIGoodParts/</url>
+      
+        <content type="html"><![CDATA[<p>WebAPI的設計與開發(WEB API: The Good Parts) (簡體中文) 讀書筆記</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9787115455338" target="_blank" rel="noopener">WebAPI的設計與開發</a><br><img src="/2018/07/25/WebAPIGoodParts/books.jpg" alt></p><p>為Web API: The Good Parts的簡體中文翻譯書</p><p>本書詳細介紹了開發WebAPI所要注意的事項，以及比較目前有Open API的各家廠商，實作API的方式與優缺點<br>並加入作者自己在開發API過程中遇到的問題、解決方式與想法，很貼近實務。</p><h2 id="什麼是WebAPI"><a href="#什麼是WebAPI" class="headerlink" title="什麼是WebAPI?"></a>什麼是WebAPI?</h2><ul><li>軟體組件的外部介面</li><li>將線上服務能做到的所有功能都透過WebAPI公開</li></ul><h2 id="WebAPI端點-End-Point-設計"><a href="#WebAPI端點-End-Point-設計" class="headerlink" title="WebAPI端點(End Point)設計"></a>WebAPI端點(End Point)設計</h2><ul><li>短小便於輸入的URI</li><li>人可以讀懂的URI</li><li>沒有大小寫混用的URI</li><li>修改方便的URI</li><li>不會暴露服務器端架構的URI</li><li>規則統一的URI</li></ul><h2 id="HTTP-Method"><a href="#HTTP-Method" class="headerlink" title="HTTP Method"></a>HTTP Method</h2><p>HTTP Method是進行HTTP訪問時指定的操作，有以下幾種</p><ul><li>Get: 取得資源</li><li>Post: 新增資源</li><li>PUT: 更新已有資源</li><li>DELETE: 刪除資源</li><li>PATCH: 更新部分資源</li><li>HEAD : 獲取資源的元訊息</li></ul><p>在特定狀況下，譬如HTML的表單操作，只允許<code>GET</code>或<code>POST</code>，這時發送<code>POST</code>時可以加入<code>X-HTTP-Method-Override</code>來調用其他HTTP Method作相對應的操作，或是自帶<code>_method</code>參數在URI上，指定相對應的操作。</p><h2 id="訪問資源的端點設計注意事項"><a href="#訪問資源的端點設計注意事項" class="headerlink" title="訪問資源的端點設計注意事項"></a>訪問資源的端點設計注意事項</h2><h3 id="使用名詞的複數形式"><a href="#使用名詞的複數形式" class="headerlink" title="使用名詞的複數形式"></a>使用名詞的複數形式</h3><p>例如<code>users</code>、<code>friends</code>、<code>companies</code>…等等，表示是資源的集合</p><h3 id="注意所用的單詞"><a href="#注意所用的單詞" class="headerlink" title="注意所用的單詞"></a>注意所用的單詞</h3><p>例如<code>search</code>與<code>find</code>都是尋找東西，但<code>find</code>一般是用來要找的東西，而<code>search</code>是要找的場所，可以參考其他API來決定要使用的單詞</p><h3 id="不使用空格及需要編碼的字符"><a href="#不使用空格及需要編碼的字符" class="headerlink" title="不使用空格及需要編碼的字符"></a>不使用空格及需要編碼的字符</h3><p>這樣會讓API端點很難閱讀</p><h3 id="使用連接符連接多個參數"><a href="#使用連接符連接多個參數" class="headerlink" title="使用連接符連接多個參數"></a>使用連接符連接多個參數</h3><p>如果有多的參數盡量使用<code>-</code>，但最好的方法是盡量避免在URI上使用多個單詞，或是URI路徑來分，例如不用<code></code>popular-users<code>，而用</code>users/popular`</p><h2 id="搜索與查詢的端點設計注意事項"><a href="#搜索與查詢的端點設計注意事項" class="headerlink" title="搜索與查詢的端點設計注意事項"></a>搜索與查詢的端點設計注意事項</h2><h3 id="分頁"><a href="#分頁" class="headerlink" title="分頁"></a>分頁</h3><p> 使用<code>limit</code>、<code>count</code>、<code>per_page</code>來表示獲取的數據量，使用<code>page</code>、<code>offset</code>、<code>cursor</code>表示獲取的位置，一般而言，<code>per_page</code>與<code>page</code>成對出現，<code>limit</code>與<code>offset</code>成對出現。<code>page</code>一般從1開始，<br> <code>offset</code>從0開始。<br> <code>offset/limit</code>自由度高，方便用戶使用，<code>page/per_page</code>自由度低，但可以減少意料之外的訪問與提高緩存效率</p><h3 id="用於過濾的參數"><a href="#用於過濾的參數" class="headerlink" title="用於過濾的參數"></a>用於過濾的參數</h3><p> 在查詢參數上要指定過濾的參數。在只有一個搜尋項目的情況下，可以使用<code>q(query的縮寫)</code>，表示部分匹配。</p><h3 id="查詢參數與路徑的使用區別"><a href="#查詢參數與路徑的使用區別" class="headerlink" title="查詢參數與路徑的使用區別"></a>查詢參數與路徑的使用區別</h3><ul><li>是否表示是唯一資源所需訊息</li><li>是否可以省略</li></ul><h2 id="回傳資料格式設計"><a href="#回傳資料格式設計" class="headerlink" title="回傳資料格式設計"></a>回傳資料格式設計</h2><ul><li><p>選擇Json或XML，目前以Json為主流。還有另一種格式稱為<a href="https://msgpack.org/" target="_blank" rel="noopener">MessagePack</a>。</p><h3 id="資料格式指定方法"><a href="#資料格式指定方法" class="headerlink" title="資料格式指定方法"></a>資料格式指定方法</h3></li><li>使用查詢參數：例如使用<code>format</code>、<code>output</code>等參數</li><li>使用擴展名(extension):例如 v1/user.json</li><li><p>使用Header指定Accept: 例如: Accept: application/json</p><h3 id="資料內部格式"><a href="#資料內部格式" class="headerlink" title="資料內部格式"></a>資料內部格式</h3></li><li>盡量以一次api呼叫就取得資料的方式為設計考量</li><li>讓用戶選擇回應的內容，一個方法是讓用戶指定欄位，一個方法是將某些欄位加入欄位群組，讓用戶選擇欄位群組。</li><li>以<code>扁平化</code>結構優先，若<code>層級化</code>結構好用時則優先</li><li>回傳資料時用物件進行封裝，更容易理解，例如: <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;friends&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;id&quot;: 12345,</span><br><span class="line">            &quot;name&quot;: &quot;test&quot;,</span><br><span class="line">            &quot;phone&quot;: &quot;123456&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;id&quot;: 34567,</span><br><span class="line">            &quot;name&quot;: &quot;test123&quot;,</span><br><span class="line">            &quot;phone&quot;: &quot;24567&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li></ul><h3 id="各個資料欄位的命名"><a href="#各個資料欄位的命名" class="headerlink" title="各個資料欄位的命名"></a>各個資料欄位的命名</h3><ul><li>使用多數api中使用的表示相同涵義的單詞</li><li>盡可能少的單詞來表示</li><li>使用多個單詞時，連接單詞的方法要統一</li><li>盡可能不用奇怪的縮語</li><li>注意單複數形式</li></ul><h3 id="日期格式"><a href="#日期格式" class="headerlink" title="日期格式"></a>日期格式</h3><ul><li>盡量使用UTC時間，例如:<code>2015-10-12T11:30:20+09:00</code></li></ul><h3 id="錯誤訊息設計"><a href="#錯誤訊息設計" class="headerlink" title="錯誤訊息設計"></a>錯誤訊息設計</h3><ul><li>通過HTTP狀態碼來表示，例如:1開頭代表消息、2開頭代表成功、3開頭代表重新導向、4開頭代表客戶端原因引發錯誤、5開頭代表服務器端發生錯誤</li><li>需向客戶端返回出錯的訊息，包含詳細錯誤代碼(自定義的)、詳細訊息連結…等等，也可以將錯誤訊息分為開發人員用與用戶端使用。例如:  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;error&quot;: &#123;</span><br><span class="line">        &quot;developerMessage&quot;: &quot;&quot;,</span><br><span class="line">        &quot;userMessage&quot;: &quot;&quot;,</span><br><span class="line">        &quot;code&quot;: 2013,</span><br><span class="line">        &quot;info&quot;: &quot;http://www.google.com&quot;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li></ul><h2 id="利用HTTP協議規範"><a href="#利用HTTP協議規範" class="headerlink" title="利用HTTP協議規範"></a>利用HTTP協議規範</h2><h3 id="正確的使用HTTP狀態碼"><a href="#正確的使用HTTP狀態碼" class="headerlink" title="正確的使用HTTP狀態碼"></a>正確的使用HTTP狀態碼</h3><ul><li>2字頭狀態碼: 成功</li><li>3字頭狀態碼: 增加必要的處理，常用來使用重新導向的操作</li><li>4字頭狀態碼: 當客戶端請求發生問題時</li><li>5字頭狀態碼: 當服務器端發生錯誤時</li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status" target="_blank" rel="noopener">參考資料</a></li></ul><h3 id="Content-Type的指定"><a href="#Content-Type的指定" class="headerlink" title="Content-Type的指定"></a>Content-Type的指定</h3><ul><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types" target="_blank" rel="noopener">Content-Type列表</a></li><li>就是請求或回傳訊息所乘載的資料格式</li><li>大部分的用戶端都先檢查Content-Type指定的值才進行後續操作</li></ul><h3 id="CORS"><a href="#CORS" class="headerlink" title="CORS"></a>CORS</h3><ul><li>在Header使用<code>Access-Control-Allow-Origin</code>，並填入允許的來源網址</li><li>使用<code>Cookie</code>、<code>Authentication</code>發送用戶驗證訊息時，服務器端需設置<code>Access-Control-Allow-Credentials</code>為true，告知用戶端已驗證發送的訊息</li></ul><h2 id="開發方便更改設計的API"><a href="#開發方便更改設計的API" class="headerlink" title="開發方便更改設計的API"></a>開發方便更改設計的API</h2><h3 id="透過版本訊息管理API"><a href="#透過版本訊息管理API" class="headerlink" title="透過版本訊息管理API"></a>透過版本訊息管理API</h3><ul><li>在URI嵌入版本訊息</li><li>在查詢參數加入版本訊息</li><li>透過Content-Type指定版本訊息</li></ul><h3 id="版本變更"><a href="#版本變更" class="headerlink" title="版本變更"></a>版本變更</h3><ul><li>修改api時要盡量維持向下相容</li><li>盡可能不去頻繁升級api</li></ul><h2 id="開發牢固的API"><a href="#開發牢固的API" class="headerlink" title="開發牢固的API"></a>開發牢固的API</h2><h3 id="非法取得訊息"><a href="#非法取得訊息" class="headerlink" title="非法取得訊息"></a>非法取得訊息</h3><ul><li>使用HTTPS</li><li>防範XSS</li><li>防範XSRF</li><li>防範JSON劫持</li></ul><h3 id="應對高流量的請求"><a href="#應對高流量的請求" class="headerlink" title="應對高流量的請求"></a>應對高流量的請求</h3><ul><li>限制每個用戶的訪問次數</li><li>使用HTTP Header來傳遞限速訊息</li><li><code>X-RateLimit-Limit</code>表示單位時間訪問上限</li><li><code>X-RateLimit-Remaining</code>表示剩餘的訪問次數</li><li><code>X-RateLimit-Rest</code>表示訪問次數重置的時間</li></ul><h2 id="公開api的準備工作"><a href="#公開api的準備工作" class="headerlink" title="公開api的準備工作"></a>公開api的準備工作</h2><ul><li>提供api文件</li><li>提供SandBox的api</li><li>提供SDK</li></ul><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>整本讀完下來，發覺以前在設計API的時候忽略很多細節，這本書也介紹了很多實務開發的技巧與建議，雖然字很多，但詳細讀完之後滿有收穫的，推薦給一樣是開發後端API程式的工程師。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 讀書筆記 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[C#]使用自訂的Attribute來增加程式的彈性</title>
+      <link href="2018/05/02/UseAttribute/"/>
+      <url>2018/05/02/UseAttribute/</url>
+      
+        <content type="html"><![CDATA[<p>在C#中，可以透過自訂Attribute來增加寫程式時的彈性，像是使用Enum，可以再多增加別的參數供我們使用</p><p>這邊介紹如何使用自訂的屬性，並透過反射來取得自訂屬性的參數值</p><a id="more"></a><h2 id="Attribute設計"><a href="#Attribute設計" class="headerlink" title="Attribute設計"></a>Attribute設計</h2><p>我使用一個Enum當作範例，目標是在Enum的屬性中掛上自訂的Attribute，能夠使用別名</p><pre><code>public enum MessageType{    /// &lt;summary&gt;The mail.&lt;/summary&gt;    [Alias(&quot;電子郵件&quot;)]    Mail,    /// &lt;summary&gt;The sms.&lt;/summary&gt;    [Alias(&quot;簡訊&quot;)]    Sms,    /// &lt;summary&gt;The line.&lt;/summary&gt;    [Alias(&quot;Line訊息&quot;)]    Line,}</code></pre><p>這個Enum很簡單，就是個訊息類型的Enum。<code>[Alias(&quot;&quot;)]</code>就是我們等一下要實作的AliasAttribute</p><pre><code>/// &lt;summary&gt;The custome attribute.&lt;/summary&gt;public class AliasAttribute : Attribute{    /// &lt;summary&gt;The _alias.&lt;/summary&gt;    private readonly string _alias;    /// &lt;summary&gt;Gets the alias.&lt;/summary&gt;    public string Alias    {        get        {            return this._alias;        }    }    /// &lt;summary&gt;Initializes a new instance of the &lt;see cref=&quot;AliasAttribute&quot;/&gt; class.&lt;/summary&gt;    /// &lt;param name=&quot;alias&quot;&gt;The alias.&lt;/param&gt;    public AliasAttribute(string alias)    {        this._alias = alias;    }}</code></pre><p><code>AliasAttribute</code>的實作很簡單，只提供一個Alias。在這個class的constructor中，其實就是<code>[Alias(&quot;&quot;)]</code>中要填入的值，你可以依照自身的需求增加。</p><h2 id="使用Reflection來取得Attribute的值"><a href="#使用Reflection來取得Attribute的值" class="headerlink" title="使用Reflection來取得Attribute的值"></a>使用Reflection來取得Attribute的值</h2><p>Reflection來取得Enum的Attriubte，並轉型成<code>AliasAttribute</code>，取出我們要的Alias</p><p>這邊我設計成ExtensionMethod，接下來程式在使用Enum時，就可以很方便的使用</p><pre><code>public static class AttributeExtension{    /// &lt;summary&gt;The get alias.&lt;/summary&gt;    /// &lt;param name=&quot;type&quot;&gt;The type.&lt;/param&gt;    /// &lt;returns&gt;The &lt;see cref=&quot;string&quot;/&gt;.&lt;/returns&gt;    public static string GetAlias(this Enum type)    {        FieldInfo fi = type.GetType().GetField(type.ToString());        var attribute = fi.GetCustomAttribute(typeof(AliasAttribute), false) as AliasAttribute;        if (attribute != null)        {            return attribute.Alias;        }        return type.ToString();    }}</code></pre><p>來試試看使用效果吧!</p><p><img src="/2018/05/02/UseAttribute/UseAttribute01.jpg" alt></p><p>單元測試通過，代表是可以work的!</p><p>將來在程式中只要使用<code>MessageType.Mail.Alias</code>就可以取得Attribute的別名了，我也會使用這個方式來替Enum的屬性加入多國語系的支援。</p><p>如果有更好的做法也歡迎分享給我知道</p><p><a href="https://github.com/BryanYu/AttributeSample" target="_blank" rel="noopener">範例程式</a></p><h2 id="參考資料"><a href="#參考資料" class="headerlink" title="參考資料"></a>參考資料</h2><p><a href="https://docs.microsoft.com/zh-tw/dotnet/csharp/programming-guide/concepts/attributes/" target="_blank" rel="noopener">Microsoft DOC - Attribute介紹</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Docker]初體驗!使用Docker建立SQL Server On Linux</title>
+      <link href="2018/04/11/DockerFirst/"/>
+      <url>2018/04/11/DockerFirst/</url>
+      
+        <content type="html"><![CDATA[<p>最近在練習.NET Core，想說範例資料庫來嘗試使用Docker建立，記錄一下使用的心得</p><a id="more"></a><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Docker是一種容器化技術，是在作業系統層面上實作虛擬化，可以讓使用者快速布建各種環境，比起以往需要使用VM來說，速度快很多，與VM比較如下圖</p><p><img src="/2018/04/11/DockerFirst/DockerFirst01.jpg" alt></p><h2 id="如何使用"><a href="#如何使用" class="headerlink" title="如何使用"></a>如何使用</h2><p>因為我是使用Windows 10 的電腦，所以請去官方網站下載<a href="https://docs.docker.com/docker-for-windows/install/" target="_blank" rel="noopener">Docker for Windows</a></p><p>安裝過程就下一步按到底啦，安裝好之後在桌面執行Docker for Windows，右下角的工具列就會出現啟動中，等他啟動完成之後就可以開始使用了<br><img src="/2018/04/11/DockerFirst/DockerFirst02.jpg" alt></p><p>由於Docker是Linux Base的技術實作，所以在Windows 10 的電腦中，預設會開啟Hyper-V，運行一個VM來幫我們模擬Docker環境</p><p><img src="/2018/04/11/DockerFirst/DockerFirst03.jpg" alt></p><p>接著啟動Winodws Power Shell，輸入<code>docker -h</code>，有出現指令說明的話及安裝成功，詳細Docker指令請參考指令說明。</p><p><img src="/2018/04/11/DockerFirst/DockerFirst04.jpg" alt></p><p>Docker的使用方式是，先下載Docker Image，在本地端建立Docker Container使用</p><h2 id="安裝SQL-Server-On-Linux"><a href="#安裝SQL-Server-On-Linux" class="headerlink" title="安裝SQL Server On Linux"></a>安裝SQL Server On Linux</h2><p>要使用Docker Image之前，首先要到<a href="https://hub.docker.com/" target="_blank" rel="noopener">Docker Hub</a>去尋找你要的Image，Image的說明頁面也會有如何下載的操作說明，以我要使用的SQL Server On Linux為例</p><p><img src="/2018/04/11/DockerFirst/DockerFirst05.jpg" alt></p><p>需要使用<code>docker pull microsoft/mssql-server-linux</code>來下載</p><p><img src="/2018/04/11/DockerFirst/DockerFirst06.jpg" alt></p><p>下載之後，用<code>docker run --name testSQL -e &#39;ACCEPT_EULA=Y&#39; -e &#39;SA_PASSWORD=Pa$$word&#39; -p 1433:1433 -d microsoft/mssql-server-linux</code> 建立container</p><p><code>-p 1433:1433</code>是開放port對應，本機電腦port:docker的port<br><code>SA_PASSWORD</code>是sa的登入密碼，剛建立之後要使用這組密碼登入<br><code>--name testSQL</code>是container的名稱</p><p>建立好container之後，使用<code>docker ps</code>來查看container狀態</p><p>現在來用SSMS連線看看吧，使用sa的帳號密碼登入，查看伺服器的屬性就可以看到是建立在Linux上了</p><p><img src="/2018/04/11/DockerFirst/DockerFirst07.jpg" alt></p><p>整個安裝下來比安裝本機的SQL Server快太多了，而且還可以隨時建立與刪除，使用docker來建立一些測試環境是滿不錯用的，是一項值得投資的工具</p><h2 id="參考資料"><a href="#參考資料" class="headerlink" title="參考資料"></a>參考資料</h2><p><a href="https://docs.docker.com/" target="_blank" rel="noopener">Docker Documentation</a><br><a href="https://hub.docker.com/" target="_blank" rel="noopener">Docker Hub</a><br><a href="https://philipzheng.gitbooks.io/docker_practice/content/" target="_blank" rel="noopener">Docker-從入門到實踐</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Docker </tag>
+            
+            <tag> SQL Server </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Azure]使用模擬的Azure Blob環境來進行開發</title>
+      <link href="2018/03/25/AzureBlobEmulator/"/>
+      <url>2018/03/25/AzureBlobEmulator/</url>
+      
+        <content type="html"><![CDATA[<p>最近在工作上使用到Azure Blob的服務，但沒有可以用來測試的Azure Blob 環境</p><p>幸好微軟有提供本地端測試用的Azure Blob模擬器環境 </p><p>就來介紹一下如何使用</p><a id="more"></a><h2 id="下載與安裝Azure-Blob-Emulator"><a href="#下載與安裝Azure-Blob-Emulator" class="headerlink" title="下載與安裝Azure Blob Emulator"></a>下載與安裝Azure Blob Emulator</h2><p>首先要先下載<a href="https://go.microsoft.com/fwlink/?linkid=717179&amp;clcid=0x409" target="_blank" rel="noopener">Azure Blob Emulator</a>，在這邊我是使用獨立的安裝程式，你也可以安裝Azure SDK來取得</p><p>安裝時記得要使用具有系統管理員身分的使用者<br><img src="/2018/03/25/AzureBlobEmulator/AzureBlob01.jpg" alt></p><p>安裝完在你的應用程式目錄會有<code>Microsoft Azure Storage Emulator</code>，去執行它<br><img src="/2018/03/25/AzureBlobEmulator/AzureBlob02.jpg" alt></p><p>預設它會幫你在你電腦上的localdb建立一個database，完成後同時也會列出相關的指令<br><img src="/2018/03/25/AzureBlobEmulator/AzureBlob03.jpg" alt></p><h2 id="使用Azure-storage-explorer管理工具"><a href="#使用Azure-storage-explorer管理工具" class="headerlink" title="使用Azure storage explorer管理工具"></a>使用Azure storage explorer管理工具</h2><p>可以使用Azure storage explorer管理介面來管理Azure Storage，也可以用來管理本地端的emulator<br><a href="https://azure.microsoft.com/en-us/features/storage-explorer/" target="_blank" rel="noopener">Azure storage explorer - 按此下載</a></p><p>如果是要連結本地端的emulator，在這個畫面按cancel直接進入即可<br><img src="/2018/03/25/AzureBlobEmulator/AzureBlob04.jpg" alt></p><p>在explorer畫面中，會標註<code>(Development)</code>，這個就是本地端的emulator內的Blob<br><img src="/2018/03/25/AzureBlobEmulator/AzureBlob05.jpg" alt></p><h2 id="測試上傳檔案到本地端的emulator-blob"><a href="#測試上傳檔案到本地端的emulator-blob" class="headerlink" title="測試上傳檔案到本地端的emulator blob"></a>測試上傳檔案到本地端的emulator blob</h2><p>記得要先裝Azure Storage SDK<br><img src="/2018/03/25/AzureBlobEmulator/AzureBlob06.jpg" alt></p><p>接下來就開始寫code啦，在範例中我使用一張圖片上傳到emulator的Blob中</p><p>使用方式請參考<a href="https://docs.microsoft.com/zh-tw/azure/storage/blobs/storage-quickstart-blobs-dotnet?tabs=windows" target="_blank" rel="noopener">快速入門：使用 .NET 上傳、下載及列出 Blob</a></p><p>程式執行完之後就會在Azure storage explorer管理工具上看到我們剛剛上傳的Container與blob<br><img src="/2018/03/25/AzureBlobEmulator/AzureBlob07.jpg" alt></p><p><a href="https://github.com/BryanYu/AzureBlobPractice" target="_blank" rel="noopener">我的練習範例</a></p><h2 id="參考資料"><a href="#參考資料" class="headerlink" title="參考資料"></a>參考資料</h2><p><a href="https://docs.microsoft.com/zh-tw/azure/storage/common/storage-use-emulator" target="_blank" rel="noopener">使用 Azure 儲存體模擬器進行開發和測試</a><br><a href="https://docs.microsoft.com/zh-tw/azure/storage/blobs/storage-quickstart-blobs-dotnet?tabs=windows" target="_blank" rel="noopener">快速入門：使用 .NET 上傳、下載及列出 Blob</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> Azure </tag>
+            
+            <tag> Visual Studio </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>無暇的程式碼-敏捷軟體開發技巧守則(Clean Code)筆記</title>
+      <link href="2018/03/25/CleanCode/"/>
+      <url>2018/03/25/CleanCode/</url>
+      
+        <content type="html"><![CDATA[<p>無暇的程式碼-敏捷軟體開發技巧守則(Clean Code)筆記</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9789862017883" target="_blank" rel="noopener">無暇的程式碼-敏捷軟體開發技巧守則(Clean Code)</a><br><img src="/2018/03/25/CleanCode/books.jpg" alt></p><p>這本書可以算是程式設計師必看的經典書籍之一了，Uncle Bob將如何寫出<code>Clean Code</code>的實踐方法，都寫在本書裡。<br>常常在扛爛系統的程式設計師看到這本書一定會有一些共鳴，像是函式的命名、註解、類別與結構的設計…等等，<br>把這本書讀完一遍，相信對你在維護與開發系統的工作上會有不同的想法。</p><h2 id="什麼是Clean-Code"><a href="#什麼是Clean-Code" class="headerlink" title="什麼是Clean Code?"></a>什麼是Clean Code?</h2><ul><li>一次只專注一件事，不受周邊細節的干擾</li><li>有可讀性的Code</li><li>包含單元測試與整合測試</li></ul><h2 id="有意義的命名"><a href="#有意義的命名" class="headerlink" title="有意義的命名"></a>有意義的命名</h2><ul><li>選擇能展現意圖的名稱，不需要額外的註解解釋它</li><li><code>避免</code>使用誤導的命名</li><li>使用能夠被唸出來、被搜尋的命名</li><li><code>避免</code>使用匈牙利命名法(將變數型別寫入命名)</li><li>類別的命名應該使用名詞或名詞片語，<code>避免</code>是動詞</li><li>方法的命名應該使用動詞或動詞片語</li><li>每個概念只使用一種字詞，<code>避免</code>使用多個類似的字詞</li><li>使用解決方案領域命名，例如演算法名稱、模式(Pattern)名稱</li><li>使用問題領域的命名</li><li>添加有意義的上下文資訊</li></ul><h2 id="函式"><a href="#函式" class="headerlink" title="函式"></a>函式</h2><ul><li>簡短的函式</li><li>一次只做一件事</li><li>由上而下閱讀程式碼：降層準則</li><li>使用具描述能力的名稱</li><li>如果函式會轉換輸入的參數，轉換的產物應該包含在回傳值內</li><li><code>避免</code>傳遞旗標值給函式，這樣代表函式做了兩件事，應該要重構成兩個函式</li><li>將指令(改變物件狀態)和查詢(回傳某些物件的資訊)分離</li><li>使用例外處理取代回傳錯誤碼</li><li>不要重複自己</li></ul><h2 id="註解"><a href="#註解" class="headerlink" title="註解"></a>註解</h2><ul><li>註解無法彌補糟糕的程式碼。用程式碼表達本意</li><li>有益的註解，包含法律型的註解、資訊型的註解、對意圖的解釋、對後果的告誡、待辦事項(TODO)</li><li>糟糕的註解，包含喃喃自語、多餘的註解、誤導型的註解、規定型的註解、日誌型的註解、干擾型的註解、出處及署名、被註解的程式碼、HTML型的註解、非區域性的資訊、過多的資訊、不顯著的關聯</li><li>可以使用函式或變數時就別使用註解</li></ul><h2 id="編排"><a href="#編排" class="headerlink" title="編排"></a>編排</h2><ul><li>程式的編排是一種溝通方式</li><li>一段程式碼代表一種思緒，用空白行來間隔這些思緒</li><li>有極度類似的概念，在垂直編排上應盡可能地靠近，<code>避免</code>使讀者在不同的檔案和類別中跳來跳去</li><li>變數宣告盡可能靠近在變數被使用的地方</li><li>實體變數應該宣告在類別的上方</li><li>相依的函式，在垂直編排上應盡可能地靠近，呼叫的敘述應該在被呼叫函式的上方</li><li>適合的水平寬度：不需要使用捲軸捲到右方</li></ul><h2 id="物件及資料結構"><a href="#物件及資料結構" class="headerlink" title="物件及資料結構"></a>物件及資料結構</h2><ul><li>物件與結構不同之處：物件將他們的資料在抽象後方隱藏起來，將操作這些資料的函式暴露在外。結構是將資料暴露在外，沒有提供有意義的函式</li></ul><h2 id="錯誤處理"><a href="#錯誤處理" class="headerlink" title="錯誤處理"></a>錯誤處理</h2><ul><li>使用例外事件而非回傳錯誤碼</li><li>如果程式可能會拋出例外，在開頭先加上try-catch-finally敘述</li><li>提供發生例外的資訊</li><li>不要回傳null值，也不要傳遞null值</li></ul><h2 id="邊界"><a href="#邊界" class="headerlink" title="邊界"></a>邊界</h2><ul><li>在邊界的程式碼必須能清楚的分割，並定義預期的測試，應避免讓我們的程式過度使用第三方軟體的特殊之處。</li><li>善用Adapter Pattern，將我們的介面轉換成第三方提供的介面，未來第三方軟體修改時，只需要進行極少處的修改</li></ul><h2 id="單元測試"><a href="#單元測試" class="headerlink" title="單元測試"></a>單元測試</h2><ul><li>測試程式與產品程式一樣重要</li><li>測試讓我們的程式保持擴充性，可以毫無畏懼的的改善系統架構</li><li>一次測試一次斷言，一次測試一個概念</li></ul><h3 id="FIRST-法則"><a href="#FIRST-法則" class="headerlink" title="FIRST 法則"></a>FIRST 法則</h3><ul><li>Fast：快速</li><li>Indenpendent：獨立，一個測試不應該是下一個測試的設定條件</li><li>Repeatable：可重複性，可以在任何環境中重複執行</li><li>Self-Validating：自我驗證，測試程式應該輸出布林值</li><li>Timely：及時，撰寫測試程式要及時。單元測試要恰好在使其通過的產品程式之前不久撰寫</li></ul><h2 id="類別"><a href="#類別" class="headerlink" title="類別"></a>類別</h2><ul><li>類別要夠簡短</li><li>保持凝聚性會得到許多小型類別</li></ul><h2 id="Kent-Beck的簡單設計原則"><a href="#Kent-Beck的簡單設計原則" class="headerlink" title="Kent Beck的簡單設計原則"></a>Kent Beck的簡單設計原則</h2><ul><li>執行完所有測試</li><li>沒有重複的部分</li><li>表達程式設計師的本意</li><li>最小化類別和方法數量</li></ul><h2 id="平行化程式設計"><a href="#平行化程式設計" class="headerlink" title="平行化程式設計"></a>平行化程式設計</h2><ul><li>與執行緒的有關的程式碼應該要短小且集中</li><li>將程式分為<code>與執行緒有關</code>與<code>與執行緒無關</code>的程式碼</li><li>不要鎖定那些沒必要鎖定的區域，<code>避免</code>從鎖定的區域呼叫另一個鎖定的區域</li></ul><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>這本書講了很多如何寫出Clean Code，不單是在Source Code的編排上，也特別提到的單元測試的重要性，有了單元測試保護，才可以毫無畏懼的去修改程式與系統架構，進而達到Clean Code的境界。雖然真實的專案中不一定都會依照Clean Code的精神開發，但看完這本書之後，我希望自己可以朝向Clean Code的方向前進，一次不用大規模修改，只要依照童子軍原則，簽入時讓Code比簽出時更為乾淨，以及加入單元測試，逐漸提高程式碼的涵蓋率。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 讀書筆記 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>物件導向原則、設計模式與C#實踐(無暇的程式碼-敏捷完整篇) 練習與筆記</title>
+      <link href="2018/03/15/AgilePrinciplePatternAndPracticeInCSharp/"/>
+      <url>2018/03/15/AgilePrinciplePatternAndPracticeInCSharp/</url>
+      
+        <content type="html"><![CDATA[<p>物件導向原則、設計模式與C#實踐(無暇的程式碼-敏捷完整篇) 練習與筆記</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9789864342099" target="_blank" rel="noopener">物件導向原則、設計模式與C#實踐(無暇的程式碼-敏捷完整篇)</a><br><img src="/2018/03/15/AgilePrinciplePatternAndPracticeInCSharp/books.jpg" alt></p><p>本書分為四個部分，第一部分詳述了敏捷開發的精神與觀念，第二部分闡述什麼是敏捷設計，主要圍繞在物件導向的設計原則，比較特別的是，作者將他的另一本UML書的章節部分搬移過來這本書中，介紹了UML中幾個重要的圖形，UML是為了要讓程式設計師知道自己的設計是否可行。第三與第四部份將前面兩個章節提過的主題，透過一個大型的程式碼範例來運用，讓你能夠更深入理解這些主題，進而運用在自己的程式設計中，我自己覺得這是一本很值得花時間細讀的書。</p><h1 id="敏捷軟體開發宣言"><a href="#敏捷軟體開發宣言" class="headerlink" title="敏捷軟體開發宣言"></a>敏捷軟體開發宣言</h1><ul><li>個人與互動 重於 程序與工具</li><li>可用的軟體 重於 詳盡的文件</li><li>與客戶合作 重於 合約的談判</li><li>回應變化  重於 遵循計畫</li></ul><p>雖然右邊的項目也有其價值，但我們認為左邊的項目更加重要</p><h2 id="個人與互動-重於-程序與工具"><a href="#個人與互動-重於-程序與工具" class="headerlink" title="個人與互動 重於 程序與工具"></a>個人與互動 重於 程序與工具</h2><ul><li>人是獲得成功的最關鍵因素</li><li>一個優秀的團隊成員可能只具備一般技術水準，但卻是個與他人合作良好的程式設計師</li><li>良好的合作(溝通與互動)比程式設計能力更加重要</li><li>建構團隊比建構環境重要，要先致力於建構團隊，再來讓團隊基於需要來設置環境</li></ul><h2 id="可用的軟體-重於-詳盡的文件"><a href="#可用的軟體-重於-詳盡的文件" class="headerlink" title="可用的軟體 重於 詳盡的文件"></a>可用的軟體 重於 詳盡的文件</h2><ul><li>不是不寫文件，而是要寫人類容易讀懂的文件，包含對系統及設計決策依據的描述</li><li>文件要短小(不超過20頁)與凸顯主題(系統的最高層結構和概括的設計原理)</li><li>對於新的團隊成員，最好的文件是<code>程式碼</code>與<code>團隊</code></li><li>太過於注重文件而非軟體本身，導致進度延遲。直到迫切需要且意義重大時，才撰寫文件(Martin文件第一定律)</li></ul><h2 id="與客戶合作-重於-合約的談判"><a href="#與客戶合作-重於-合約的談判" class="headerlink" title="與客戶合作 重於 合約的談判"></a>與客戶合作 重於 合約的談判</h2><ul><li>只寫下對軟體的描述，請人在固定時間、固定價格開發，最終都會宣告失敗</li><li>成功的專案需要定期且頻繁的客戶回饋，讓團隊與客戶緊密的一起工作，盡可能經常提供回饋</li></ul><h2 id="回應變化-重於-遵循計畫"><a href="#回應變化-重於-遵循計畫" class="headerlink" title="回應變化  重於 遵循計畫"></a>回應變化  重於 遵循計畫</h2><ul><li>建置計畫時，要確保計劃本身具備足夠靈活性，能夠適應商務和技術面的變化</li><li>為下一周做詳盡計畫，下3個月做粗略計畫，再往後只做極為簡略的計畫，保持靈活性</li></ul><h2 id="原則"><a href="#原則" class="headerlink" title="原則"></a>原則</h2><p>從上面的價值觀，引導出原則</p><ol><li>我們最優先的任務，是透過及早且持續交付有價值的軟體來滿足客戶需求</li></ol><ul><li>初期交付的系統包含的功能越少，最終交付品質就越高</li><li>交付的越頻繁，最終產品品質就越高</li></ul><ol start="2"><li><p>我們竭誠歡迎客戶改變需求，即使已經到了開發後期。敏捷程序能夠駕馭變更，為客戶創造競爭優勢</p></li><li><p>經常交付可以工作的軟體，交付頻率可以從幾個星期到幾個月，而時間間隔則是越短越好</p></li></ol><ul><li>交付滿足客戶需要的軟體</li></ul><ol start="4"><li>業務人員與開發人員必須在專案開發的過程中，天天在一起工作</li><li>依靠鬥志高昂的人來建置專案，並給予他們所需的環境與支援，信任他們能夠完成工作</li><li>在團隊內部，效率最高的且效果最佳的傳遞方式，是面對面交談</li><li>可以工作的軟體是進度最主要的量測標準</li><li>敏捷程序提倡可持續的開發，贊助者、開發者和使用者應當總是保持穩定的開發速度</li><li>持續追求卓越的技術和良好的設計，將有助於提高敏捷性</li><li>精簡-將未完成的工作量最大化的技藝，是不可或缺的</li><li>最佳的架構、需求、與設計都源自於能夠自我組織的團隊</li><li>每隔一段固定的時間，團隊會定期檢討如何能更有效率，然後依照檢討結果，適當的調整與修正自己的行為</li></ol><h1 id="XP極限程式設計實踐"><a href="#XP極限程式設計實踐" class="headerlink" title="XP極限程式設計實踐"></a>XP極限程式設計實踐</h1><h2 id="完整團隊"><a href="#完整團隊" class="headerlink" title="完整團隊"></a>完整團隊</h2><ul><li>客戶、管理者、開發人員緊密的在一起工作</li><li>客戶是指<code>定義產品特性並安排這些特性優先順序的人或團體</code></li></ul><h2 id="使用者故事-User-Stories"><a href="#使用者故事-User-Stories" class="headerlink" title="使用者故事(User Stories)"></a>使用者故事(User Stories)</h2><ul><li>用來輔助正在進行、關於需求的談話，是一種做計劃的工具，客戶可以使用他並根據需求優先順序與預算，進行實現需求的時程規劃</li></ul><h2 id="短的交付週期"><a href="#短的交付週期" class="headerlink" title="短的交付週期"></a>短的交付週期</h2><ul><li>每兩周交付一次<code>可以工作</code>的軟體</li><li>Iteration計畫：由一組使用者故事組成</li><li>發布計畫：大約是六輪的iteration(12周 或 3個月)</li></ul><h2 id="驗收測試"><a href="#驗收測試" class="headerlink" title="驗收測試"></a>驗收測試</h2><ul><li>描述了每個需求的細節，用來驗證這些需求是否被正確完成的依據</li><li>驗證測試通過後，將這個測試加入驗證集合，不允許測試再度失敗</li></ul><h2 id="結對程式設計-Pair-Progamming"><a href="#結對程式設計-Pair-Progamming" class="headerlink" title="結對程式設計(Pair Progamming)"></a>結對程式設計(Pair Progamming)</h2><ul><li>兩個程式設計師一個人開發，另一個觀看</li><li>可以促進知識在團隊裡傳播</li><li>不會降低效率，反而減少缺陷發生的機率</li></ul><h2 id="測試驅動開發-TDD"><a href="#測試驅動開發-TDD" class="headerlink" title="測試驅動開發(TDD)"></a>測試驅動開發(TDD)</h2><ul><li>先撰寫測試程式，再開發產品程式碼使其通過測試</li><li>非常有利於<code>重構</code></li></ul><h2 id="集體所有權"><a href="#集體所有權" class="headerlink" title="集體所有權"></a>集體所有權</h2><ul><li>每個程式設計師都可以簽出任何模組並改善它，不對單獨的技術與模組負起全責</li></ul><h2 id="持續整合-CI"><a href="#持續整合-CI" class="headerlink" title="持續整合(CI)"></a>持續整合(CI)</h2><ul><li>使用非鎖死特性的程式碼控制工具(分散式版控)</li><li>避免程式碼合併時間過長，團隊成員會頻繁簽入模組</li><li>合併產生衝突時，要與其他程式設計師協商，一旦整合完成就進行所有測試</li></ul><h2 id="可持續的開發速度"><a href="#可持續的開發速度" class="headerlink" title="可持續的開發速度"></a>可持續的開發速度</h2><ul><li>團隊保持旺盛精力與敏銳的警覺</li></ul><h2 id="開放的工作空間"><a href="#開放的工作空間" class="headerlink" title="開放的工作空間"></a>開放的工作空間</h2><h2 id="計畫遊戲"><a href="#計畫遊戲" class="headerlink" title="計畫遊戲"></a>計畫遊戲</h2><ul><li>劃分業務和開發之間的職責</li><li>業務人員決定特性的重要性</li><li>開發人員決定實現一個特性所花的代價</li></ul><h2 id="簡單設計"><a href="#簡單設計" class="headerlink" title="簡單設計"></a>簡單設計</h2><ul><li>考慮能夠工作的最簡單的事情</li><li>在非常確定引入基礎設施會帶來更大的效益時在引入它</li><li>不能容忍重複的程式碼</li></ul><h2 id="重構"><a href="#重構" class="headerlink" title="重構"></a>重構</h2><ul><li>隨著持續開發，程式碼結構會逐漸退化，這時候就需要重構來扭轉這些退化</li><li>重構是持續進行的</li></ul><h2 id="隱喻"><a href="#隱喻" class="headerlink" title="隱喻"></a>隱喻</h2><ul><li>將系統維繫在一起的全域視圖(概觀或藍圖的意思)</li></ul><h2 id="物件導向設計原則"><a href="#物件導向設計原則" class="headerlink" title="物件導向設計原則"></a>物件導向設計原則</h2><ul><li>單一職責原則：一個類別應該只有一個發生變化的原因</li><li>開放封閉原則：對擴充開放，對修改封閉</li><li>Liskov替換原則：子型態必須能夠替換掉他們的基底型態</li><li>依賴反向原則：抽象不應該依賴細節。細節應該依賴抽象</li><li>介面隔離原則：不應該強迫客戶程式依賴他們未使用的方法</li></ul><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>這本書真的滿多內容的，也有很多可以練習的範例，我自己是大部分都有實作，讓我更能掌握物件導向的設計原則與更了解敏捷開發的精神，是一本值得坐下來花時間看完的書</p><p>我附上我自己練習的程式碼，但沒有全部的範例的程式碼，若有需要書中的範例程式碼，請至作者的官方網站下載</p><p><a href="https://github.com/BryanYu/AgilePrinciplesPractice" target="_blank" rel="noopener">AgilePrinciplesPractice</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> Agile </tag>
+            
+            <tag> Design Pattern </tag>
+            
+            <tag> 讀書筆記 </tag>
+            
+            <tag> 練習 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]10-設定Jenkins發送郵件通知專案建置報告</title>
+      <link href="2018/03/01/Jenkins10/"/>
+      <url>2018/03/01/Jenkins10/</url>
+      
+        <content type="html"><![CDATA[<p>在Jenkins中，可以依照不同的情況觸發寄送email通知，讓團隊成員隨時掌握專案的建置狀況，必要時可以馬上進行處理</p><a id="more"></a><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>將Email Template 存放至Jenkins伺服器</li><li>設定Jenkins使用電子郵件相關資訊</li><li>新增建置後步驟，發送Email </li></ul><h3 id="將Email-Template-存放至Jenkins伺服器"><a href="#將Email-Template-存放至Jenkins伺服器" class="headerlink" title="將Email Template 存放至Jenkins伺服器"></a>將Email Template 存放至Jenkins伺服器</h3><p>我在網路上有找到一個不錯的<a href="https://gist.github.com/lvdaqian" target="_blank" rel="noopener">Email Template</a>，也可以自行設計</p><p>儲存到Jenkins目錄中，路徑為<code>%ProgramFiles(x86)%\Jenkins\email-templates\</code></p><p>檔名我存成 <code>email-template.jelly</code></p><p>如果沒有<code>email-templates</code>，要自己新增資料夾</p><h3 id="設定Jenkins使用電子郵件相關資訊"><a href="#設定Jenkins使用電子郵件相關資訊" class="headerlink" title="設定Jenkins使用電子郵件相關資訊"></a>設定Jenkins使用電子郵件相關資訊</h3><p>在設定系統中，找到擴充電子郵件通知</p><p>由於我自己沒有SMTP服務，所以我使用google的SMTP，要注意每天會有使用限制</p><ol><li>SMTP伺服器:即google的SMTP，smtp.gmail.com</li><li>允許使用SMTP認證</li><li>使用者名稱：即google帳號</li><li>密碼：即google密碼</li><li>允許使用SSL</li><li>SMTP連接埠：預設465</li><li>預設內容類型：請選Html</li><li>預設主旨：請依照自身需求設定，這裡我保留預設</li><li>預設內容：這邊請設定 <code>${JELLY_SCRIPT,template=&quot;email-template.jelly&quot;}</code>，也就是上一個步驟存放的email template檔名，要用這個檔來產生電子郵件內容</li></ol><p><img src="/2018/03/01/Jenkins10/Jenkins10-01.jpg" alt></p><h3 id="新增建置後步驟，發送Email"><a href="#新增建置後步驟，發送Email" class="headerlink" title="新增建置後步驟，發送Email"></a>新增建置後步驟，發送Email</h3><p>到專案的組態中，在建置後動作，選擇可編式電子郵件通知</p><p>這邊請依照自身需求設定，我保留預設的設定<br><img src="/2018/03/01/Jenkins10/Jenkins10-02.jpg" alt></p><p>在Advanced Settings，可以設定觸發條件，請依照自身需求設定觸發條件<br><img src="/2018/03/01/Jenkins10/Jenkins10-03.jpg" alt></p><p>設定完成後，回到專案首頁，可以先測試一下看看是不是設定完成</p><p>點選Email Template Testing，然後填入之前設定的Email Template 檔名，按Go，就會呈現使用template的建置報告了<br><img src="/2018/03/01/Jenkins10/Jenkins10-04.jpg" alt></p><p>實際執行完專案建置，觀察Console Output，也有出現寄送電子郵件訊息。電子信箱也確實有收到了<br><img src="/2018/03/01/Jenkins10/Jenkins10-05.jpg" alt><br><img src="/2018/03/01/Jenkins10/Jenkins10-06.jpg" alt></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]09-建置完成後執行單元測試，並產生測試結果圖表</title>
+      <link href="2018/03/01/Jenkins09/"/>
+      <url>2018/03/01/Jenkins09/</url>
+      
+        <content type="html"><![CDATA[<p>在開發程式時，都會包含對程式的單元測試，本機電腦可以執行單元測試，確保程式沒有被我們改壞。但在團隊協同開發時，團隊會頻繁簽入程式碼，每個人不一定都會執行單元測試成功後再簽入，這時候可以交由Jenkins幫我們依照排程進行單元測試，確保程式碼的覆蓋率沒有下降，單元測試案例也都是通過的，以確保專案程式的品質。</p><a id="more"></a><p>本範例的測試框架我使用的是<a href="http://nunit.org/" target="_blank" rel="noopener">NUnit</a></p><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li><li>NUnit</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>Jenkins伺服器安裝NUnit Console</li><li>Jenkins安裝NUnit外掛</li><li>增加建置步驟，加入執行單元測試指令</li><li>產生測試結果圖表</li></ul><h3 id="Jenkins伺服器安裝NUnit-Console"><a href="#Jenkins伺服器安裝NUnit-Console" class="headerlink" title="Jenkins伺服器安裝NUnit Console"></a>Jenkins伺服器安裝NUnit Console</h3><p>到 <a href="http://nunit.org/download/" target="_blank" rel="noopener">NUnit下載頁</a>下載最新版的NUnit Console，並安裝至Jenkins伺服器</p><p>預設安裝的路徑是 %ProgramFiles(x86)%\NUnit.org\nunit-console</p><p><img src="/2018/03/01/Jenkins09/Jenkins09-01.jpg" alt></p><h3 id="Jenkins安裝NUnit外掛"><a href="#Jenkins安裝NUnit外掛" class="headerlink" title="Jenkins安裝NUnit外掛"></a>Jenkins安裝NUnit外掛</h3><p>Jenkins安裝NUnit外掛<br><img src="/2018/03/01/Jenkins09/Jenkins09-02.jpg" alt></p><h3 id="建置完成後加入執行單元測試指令"><a href="#建置完成後加入執行單元測試指令" class="headerlink" title="建置完成後加入執行單元測試指令"></a>建置完成後加入執行單元測試指令</h3><p>在建置動作中，要在建置專案的指令後面，新增執行Windows批次指令，讓專案建置完之後執行單元測試</p><p>在這個範例我使用<code>Bryan.Architecture.Utility.UnitTests</code>這個單元測試專案</p><p>呼叫NUnit Console.exe執行建置完的單元測試專案的dll</p><pre><code>&quot;%ProgramFiles(x86)%\NUnit.org\nunit-console\nunit3-console.exe&quot;&quot;%WORKSPACE%\Bryan.Architecture\Bryan.Architecture.Utility.UnitTests\bin\Debug\Bryan.Architecture.Utility.UnitTests.dll&quot; -result=TestResult.xml;format=nunit2</code></pre><p><code>-result=TestResult.xml;format=nunit2</code>，這段指令可以在單元測試完之後產生Report，給Jenkins呈現測試結果圖表</p><p><img src="/2018/03/01/Jenkins09/Jenkins09-03.jpg" alt></p><h3 id="產生測試結果圖表"><a href="#產生測試結果圖表" class="headerlink" title="產生測試結果圖表"></a>產生測試結果圖表</h3><p>在建置後動作，新增Publish NUnit test result report，然後填上剛剛上一個步驟設定的Report檔名(TestResult.xml)</p><p><img src="/2018/03/01/Jenkins09/Jenkins09-04.jpg" alt></p><p>觀察Console Output就可以看到有實際執行單元測試了<br><img src="/2018/03/01/Jenkins09/Jenkins09-05.jpg" alt></p><p>回到專案的首頁，就有單元測試最新的結果了<br><img src="/2018/03/01/Jenkins09/Jenkins09-06.jpg" alt></p><p>也可以看到有哪些單元測試案例被執行，最後執行的狀態為何<br><img src="/2018/03/01/Jenkins09/Jenkins09-07.jpg" alt></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Jenkins </tag>
+            
+            <tag> Unit Testing </tag>
+            
+            <tag> NUnit </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>單元測試的藝術(第二版) 筆記</title>
+      <link href="2018/02/28/TheArtOfUnitTesting/"/>
+      <url>2018/02/28/TheArtOfUnitTesting/</url>
+      
+        <content type="html"><![CDATA[<p>單元測試的藝術(第二版) 讀書筆記</p><p>為The Art of Unit Testing With Examples in C# 的中譯版本，譯者為業界知名的講師91</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9789864342471" target="_blank" rel="noopener">單元測試的藝術(第二版)</a><br><img src="/2018/02/28/TheArtOfUnitTesting/books.jpg" alt></p><p>本書前半部分講述如何開始撰寫單元測試、單元測試的技巧、介紹隔離框架與用法，後半部分著重於如何撰寫好的單元測試、以及在組織或團隊中要導入開發測試程式，會遇到的困難與解決方法。</p><h2 id="一個優秀的單元測試所具備的特質"><a href="#一個優秀的單元測試所具備的特質" class="headerlink" title="一個優秀的單元測試所具備的特質"></a>一個優秀的單元測試所具備的特質</h2><ul><li>自動化</li><li>容易撰寫</li><li>執行快速</li><li>重複執行得到一樣的結果</li></ul><h2 id="單元測試的命名慣例"><a href="#單元測試的命名慣例" class="headerlink" title="單元測試的命名慣例"></a>單元測試的命名慣例</h2><ul><li>專案：[專案名稱].UnitTests</li><li>類別：[被測試類別名稱]Tests</li><li>測試案例：[工作單元(方法名稱或是抽象的描述)]<em>[情境]</em>[預期結果]</li></ul><h2 id="單元測試框架-NUnit"><a href="#單元測試框架-NUnit" class="headerlink" title="單元測試框架-NUnit"></a>單元測試框架-NUnit</h2><p><a href="http://nunit.org/" target="_blank" rel="noopener">NUnit</a> </p><h2 id="單元測試的核心技術"><a href="#單元測試的核心技術" class="headerlink" title="單元測試的核心技術"></a>單元測試的核心技術</h2><ul><li>虛設常式(Stub)：產生一個可控物件，代替一個外部的相依物件，不會對虛設常式進行驗證</li><li>模擬物件(Mock)：驗證被測試物件是否如預期般呼叫這個假物件，會對模擬物件進行驗證</li></ul><p>在單元測試中，可以使用自己實作虛設常式與模擬物件，但自己實作這些類別比較花費時間，在一般的情況下，可以使用模擬框架來實作。</p><h2 id="隔離模擬框架-NSubstitute"><a href="#隔離模擬框架-NSubstitute" class="headerlink" title="隔離模擬框架-NSubstitute"></a>隔離模擬框架-NSubstitute</h2><p><a href="http://nsubstitute.github.io/" target="_blank" rel="noopener">NSubstitute</a></p><h2 id="測試階層與組織"><a href="#測試階層與組織" class="headerlink" title="測試階層與組織"></a>測試階層與組織</h2><ul><li>測試自動化，使用自動化建置流程，頻繁的執行測式</li><li>將整合測試與單元測試分開，建立綠色安全區域，確保區域內的測試都可以通過</li></ul><h2 id="好的單元測試的支柱"><a href="#好的單元測試的支柱" class="headerlink" title="好的單元測試的支柱"></a>好的單元測試的支柱</h2><h3 id="可信賴"><a href="#可信賴" class="headerlink" title="可信賴"></a>可信賴</h3><ul><li>決定何時刪除或修改測試</li><li>避免測試中帶有邏輯：避免出現邏輯判斷(if、switch)與迴圈(foreach、for、while)</li><li>每次只測試一個關注點</li><li>把單元測試與整合測試分開</li><li>用程式碼審查確保程式碼覆蓋率</li></ul><h3 id="可維護性"><a href="#可維護性" class="headerlink" title="可維護性"></a>可維護性</h3><ul><li>只測試公開的方法</li><li>去除重複的程式碼</li><li>實作測式隔離</li><li>避免對不同的關注點進行多次驗證</li></ul><h3 id="可讀性"><a href="#可讀性" class="headerlink" title="可讀性"></a>可讀性</h3><ul><li>命名單元測試與變數</li><li>有意義的驗證</li><li>驗證與操作分離</li></ul><h2 id="在組織中導入單元測試"><a href="#在組織中導入單元測試" class="headerlink" title="在組織中導入單元測試"></a>在組織中導入單元測試</h2><h3 id="找到可能的切入點"><a href="#找到可能的切入點" class="headerlink" title="找到可能的切入點"></a>找到可能的切入點</h3><ul><li>選擇小團隊</li><li>建立子團隊</li><li>考慮專案的可行性</li><li>使用程式碼與和測試審查作為工具</li></ul><h3 id="成功之道"><a href="#成功之道" class="headerlink" title="成功之道"></a>成功之道</h3><ul><li>游擊式的進行(由下而上)：由開發者採納這樣的變革，管理者也願意支持</li><li>說服高層(由上而下)：藉由管理職權直接進行變革</li><li>引入外援：透過外部顧問來進行變革</li><li>讓進度可見</li><li>設定具體目標：提高測試程式覆蓋率，同時也要進行程式和測試審查、減少重複出現的bug、降低修復bug的時間</li><li>應對阻礙</li></ul><h3 id="失敗原因"><a href="#失敗原因" class="headerlink" title="失敗原因"></a>失敗原因</h3><ul><li>缺乏驅動力</li><li>缺乏政策支援</li><li>糟糕的實現和第一印象</li><li>缺少團隊支持</li></ul><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>這不單單是一本講述單元測試實作與技術面的書，同時也提到技術決策面與管理面的問題。我自己的經驗是，在時程很緊迫的情況下，通常被犧牲的一定都是測試，有些管理階層會說這些測試交由QA人員測試即可，但我認為，如果開發程式沒有用單元測試來驗證自己的功能是不是正確，那根本不算是真正的完成。有單元測試的保護，在進行程式需求變更或重構時也比較有信心不會改壞，也會讓新的人員加入團隊時，只要看一下單元測試就可以了解目前的程式提供了什麼功能，加快了解程式的速度。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> 讀書筆記 </tag>
+            
+            <tag> 練習 </tag>
+            
+            <tag> Unit Testing </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>軟技能-代碼以外的生存指南(簡體中文) 筆記</title>
+      <link href="2018/02/21/SoftSkills/"/>
+      <url>2018/02/21/SoftSkills/</url>
+      
+        <content type="html"><![CDATA[<p>軟技能-代碼以外的生存指南 讀書筆記 </p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9787115429476" target="_blank" rel="noopener">軟技能代碼之外的生存指南</a><br><img src="/2018/02/21/SoftSkills/books.jpg" alt></p><p>為Soft Skills - The Software Developers Life Manual的簡體中文翻譯書</p><p>這本書不是技術書，是從人的角度關注軟體開發人員的自身發展，所以這本書沒有提到技術方面的章節，大部分的章節都與軟體開發人員的自身發展有關，像是學習、職業發展、投資理財、甚至是健身的主題都有提到，滿適合休閒的時候看的一本書。</p><h2 id="職業"><a href="#職業" class="headerlink" title="職業"></a>職業</h2><p>這一章闡述如何使自己的職涯與他人與眾不同，像是如何學習與人打交道、面試的技巧、成為專業人士、修改履歷、如何創業…等等。</p><p>我個人覺得像是如何學習與人打交道就滿重要的，軟體開發人員常常埋首於電腦前，少了與人交流的機會，漸漸的社交能力就會退化了。</p><h2 id="自我營銷"><a href="#自我營銷" class="headerlink" title="自我營銷"></a>自我營銷</h2><p>這一章闡述要如何經營自己，把自己當作品牌經營，像是要經營自己的部落格、善用社群、演講培訓或著書…等等。</p><p>這也是我目前正在練習做的事，把自己學習到的知識透過部落格分享出去，同時也分享一些自己的觀點與他人交流</p><h2 id="學習"><a href="#學習" class="headerlink" title="學習"></a>學習</h2><p>這一章闡述要如何學習，書裡面提供了十步學習法</p><ul><li>了解全局</li><li>確定範圍</li><li>定義目標</li><li>尋找資源</li><li>創建學習計畫</li><li>篩選資源</li><li>開始學習，淺嚐而止</li><li>動手操作，邊玩邊學</li><li>全面掌握，學以致用</li><li>樂為人師，融會貫通</li></ul><p>學到的知識，也要分享給其他人</p><h2 id="生產力"><a href="#生產力" class="headerlink" title="生產力"></a>生產力</h2><p>這一章闡述如何提高自己的生產力，像是使用番茄工作法、訂定生產力提升計畫、以及要做好時間管理…等等</p><p>我個人覺得要提升生產力就是投資自己的開發工具，像是練習編譯工具的快捷鍵，或是購買好用的第三方工具，都可以讓自己的開發效率大幅提升，雖然要花一點錢，但能夠比別人提早完成工作或是早下班，效益是很大的。</p><h2 id="理財"><a href="#理財" class="headerlink" title="理財"></a>理財</h2><p>這一章闡述如何理財，簡略了介紹一些投資工具，不過畢竟這本書不是專業的理財書，所以要了解各個投資工具的話還是要參閱其他書籍。</p><p>我自己在假日時也會研究如何投資理財，我推薦科斯托蘭尼與彼特林區的書，這兩位大師崇尚價值投資方法，有興趣的朋友可以自行買來看看，我覺得受益匪淺。</p><h2 id="健身"><a href="#健身" class="headerlink" title="健身"></a>健身</h2><p>這一章闡述如何健身，以及健身對自己的身體健康的重要性，不過畢竟這本書不是專業的健身書，所以要了解的話還是要諮詢專業的健身教練或是參閱書籍。</p><h2 id="精神"><a href="#精神" class="headerlink" title="精神"></a>精神</h2><p>這一章主要闡述的是心態，像是正確的心態、積極面對與擁抱失敗…等等。</p><p>我個人覺得心態的培養要經歷很長時間，以及要面對各種狀況發生，而且面對失敗的情況，人常常都會有一種逃避心態，但面對問題就是解決問題的第一步。</p><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>總體而言，這是一本教你如何成為更好的人的一本書，這些方法會讓你受用很久，無論未來是不是還在軟體開發的領域，只要做好書中所提到的部分，相信在別的領域，也會是一個成功的人。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 讀書筆記 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>無暇的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 筆記</title>
+      <link href="2018/02/04/TheCleanCoder/"/>
+      <url>2018/02/04/TheCleanCoder/</url>
+      
+        <content type="html"><![CDATA[<p> 無瑕的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 讀書筆記</p><p> 為The Clean Code(中譯無瑕的程式碼)的下集，作者為Robert C. Martin，人稱Uncle Bob</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9789862017883" target="_blank" rel="noopener">無瑕的程式碼 番外篇－專業程式設計師的生存之道 (The Clean Coder: A Code of Conduct for Professional Programmers) </a><br><img src="/2018/02/04/TheCleanCoder/books.jpg" alt></p><p>本書是 無瑕的程式碼的下集，內容著重在如何成為一位<code>專業</code>的程式設計師。要成為一位專業的程式設計師，其實也就是成為一個負責任的人，對自己、自己寫的程式、公司、團隊、專案負責。這本書講述了滿多程式設計師會遇到的狀況，以及應對的方法，同時也提到了關於自身的技能培養與學習，我覺得是一本值得一看的書。</p><h2 id="學習說不"><a href="#學習說不" class="headerlink" title="學習說不"></a>學習說不</h2><p>作者在這一章強調，在自己沒把握的情況下，要堅守自己的原則說不，不能說<code>試試看</code>這種話，因為試試看就代表是一種承諾，而且說出試試看就代表之前都沒有全力以赴，這是一種不專業的行為。</p><p>我自己認為這個最難，因為主管與老闆們最不喜歡聽到的就是程式設計師說不，這會讓他們認為推託的感覺，我自己認為要提供一些資料輔助他們判斷，而不是憑空就說這個不行那個不行，要提出不行的原因在哪、以及一些解決方案，如果主管跟老闆們認為有時間壓力，就要跟他們溝通協調列出優先順序，商業價值含量高的先實作…等等，因為如果都全部照單全收，那最後累死的也會是自己，產出的東西質量也會很差。</p><h2 id="學習說是"><a href="#學習說是" class="headerlink" title="學習說是"></a>學習說是</h2><p>這個主題主要講的是<code>承諾</code>，一旦你給出承諾就一定要達成，但如果是有牽涉到其他組織或部門的工作，就不要輕易的承諾會完成，只承諾自己可以控制的範圍。</p><h2 id="寫程式"><a href="#寫程式" class="headerlink" title="寫程式"></a>寫程式</h2><p>作者在這一章講了幾個我覺得很有趣的內容，像是流態區(Flow zone) (又稱為神馳狀態)，一旦進入這個狀態之後寫程式的速度會飛快，會維持高度專注力。但作者認為在這個狀態會缺乏理性思考能力，反而對程式開發是有害的，只有在練習的時候這個狀態才會對你有幫助。</p><p>另一個主題是談到寫程式的情緒，如果感到焦慮或是心煩氣躁的時候，先讓自己冷靜下來，整理好情緒再繼續開發，最好的方式是先將情緒處理好，不要帶進公司影響自己的工作。</p><p>還有一個是關於幫助這件事，要成為一個專業的程式設計師，要不吝於幫助他人，也要學會請求別人的幫助。我自己就曾經遇過不願意接受別人幫助的同事，死命護住自己的地盤。我覺得程式設計是一種集體智慧，不是個人英雄式的單打獨鬥，一個人是走不遠的，果不其然，那位同事寫的程式發生問題，團隊的人都要幫他收拾殘局。我自己也是常常請其他同事幫我檢視看看我自己想的有沒有問題，因為明知道團隊有資源不用實在是太浪費了，況且同事們看法與角度一定與我不同，可以在這過程中學習。</p><p>關於超時加班這件事，作者裡面也有提到，除非你自己可以擠出這些時間、短期加班最多不超過兩周、你的老闆要有後備方案，否則不要輕易答應加班。我自己遇過的狀況是老闆在專案延遲時就要你固定加時工作，但加時工作讓團隊產出的效率更為降低，因為休息時間不夠，隔天帶著前一天的疲勞來上班，變成惡性循環，前一天開發的可能不是功能，而是BUG了。</p><h2 id="練習"><a href="#練習" class="headerlink" title="練習"></a>練習</h2><p>關於練習，作者提到Dojo(道場)與Kata(對打)，在工作之餘要經常練習，而且是利用<code>自己的時間</code>練習，因為雇主沒有義務要為你的職涯負責，作者也提到一周的工時是60小時，其中一周40(一天8小時)小時是為雇主工作，剩下的20小時是要為自己工作，等於一天要培養自己的技能3個小時。</p><p>不過我自己認為，如果工作上負擔沒有那麼重的話，在公司的資源與時間可以好好利用。</p><h2 id="測試"><a href="#測試" class="headerlink" title="測試"></a>測試</h2><p>關於測試，作者提了滿多建議，包含</p><ul><li><p>完成的定義：程式碼完成、所有測試通過、QA測試通過、業務單位確認過，才叫完成</p></li><li><p>TDD(測試驅動開發)：程式設計師應該要學會TDD，這才是專業的表現，要確保自己開發的程式是正確沒有缺陷的，以攻守比喻來說，TDD是<code>攻</code>，先寫功能在寫測試是<code>守</code>。</p></li><li><p>驗收測試：要由業務人員與QA一起來撰寫驗收測試，它是需求文件，用來描述系統會提供什麼樣的功能，如果要由開發人員來寫，要與<code>開發功能</code>的人不同。</p></li><li><p>持續整合與自動化：要能將這些測試自動化，透過持續整合機制幫我們運行這些測試，如果有發生測試失敗，團隊要立即停下來修正程式，直到測試可以完全通過為止。</p></li></ul><p>另一方面探討測試的策略，由上而下為</p><ul><li><p>人工探索測試：就是非腳本化的測試，需要人工介入，確保系統在人工作業下運行良好。</p></li><li><p>系統測試：最終的整合測試，用來測試組裝好的系統各個部分是否可以正確交互操作，由架構師操作，在這個層級<code>必須包含性能與產能</code>測試</p></li><li><p>整合測試：是一種編排性的測試，確認元件組裝之後是否協調，由架構師撰寫，在這個層級已經可以進行<code>性能</code>與<code>產能</code>測試了</p></li><li><p>元件測試：是<code>驗收測試</code>的一種，對業務規則的一種驗收測試，由QA與業務人員撰寫。主要測試成功路徑的狀況</p></li><li><p>單元測試：由程式設計師撰寫，確保程式碼意圖沒有遭到破壞，且程式碼是運作正確的，要包含邊界與異常狀況</p></li></ul><h2 id="時間管理"><a href="#時間管理" class="headerlink" title="時間管理"></a>時間管理</h2><p>作者有提到要管理自己的時間與專注力，要適時的拒絕沒效率的會議，以及要避免優先順序錯亂，另外也介紹了作者使用番茄工作法來管理自己的時間。</p><p>關於會議，我自己遇過的是，會議的主持方完全沒有準備，在會議上天馬行空的討論好幾個小時，但會議結束後完全沒有結論與決策方向，可能過個幾天又要再來一次，自己的時間完全被開會這件事吃掉，在開會的途中也不太能開發程式，實在是很浪費時間，我覺得最好的做法是，先確定開會的主題與方案，在會議前先發給所有與會的人，說明我們的主題聚焦在這幾個部分，單就這幾個部分做討論，在開會的時候只要決定方向就好了。</p><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>　<br>整本書看下來，如果你的工作是從事程式開發，一定或多或少會遇到書中提及的狀況，這時候就會覺得自己並不孤單，因為連大師級的作者都會遇到了，沒道理自己不會遇到，我想作者就是經歷過這些，也有一套很好的處理的原則與方法，所以才會成為大師的吧。所以當你遇到困境，不知道該怎麼處理的時候，來翻翻這本書吧，或許大師的智慧能夠幫助你度過困境。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 讀書筆記 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>鳳凰項目-一個IT運維的傳奇故事(沙盤特別版) (簡體中文) 筆記</title>
+      <link href="2018/01/24/ThePhoenixProject/"/>
+      <url>2018/01/24/ThePhoenixProject/</url>
+      
+        <content type="html"><![CDATA[<p> 鳳凰項目-一個IT運維的傳奇故事(沙盤特別版)讀書筆記</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9787115403650" target="_blank" rel="noopener">鳳凰項目-一個IT運維的傳奇故事</a><br><img src="/2018/01/24/ThePhoenixProject/books.jpg" alt></p><p>為The Phoenix Project的簡體中文翻譯書，台灣出版社有出繁體中文版，因為我購買時是跟著社群團購，所以買了簡體中文版本</p><p>書中介紹一家汽車部件供應商，在競爭對手不斷進逼，公司營業額持續下滑，市占率逐漸衰退，裡面的主角身為一位IT的高階管理者，運用自己的IT知識，與發揮溝通協調的能力，將開發與運維一體化，讓公司重回獲利與成長軌道。</p><p>書中以工作車間的工作站為比喻，當作產品的流水線，搭配可視覺化的圖表，了解各個工作站是否有瓶頸以及未完成品的個數，透過有效的管理產能瓶頸點，提升生產效率。</p><h2 id="書中介紹的三個工作法"><a href="#書中介紹的三個工作法" class="headerlink" title="書中介紹的三個工作法"></a>書中介紹的三個工作法</h2><ul><li>第一工作法：從開發到IT運維再到客戶的整個流程，為使流量最大化，需要小批量的規模與工作間隔，不讓缺陷往下一個工作站移動，必要的做法包含持續構建、佈署，按造需求創建環境、嚴格管控半成品</li><li>第二工作法：快速持續反饋流，確保防止問題再次發生，或更快的發現與修復問題，必要的做法包含佈署管道中的構建和測試失敗時，要停止生產線，創建快速的自動化測試套件、隨時可佈署的代碼、開發與IT運維之間建立共同的目標與解決問題的機制、建立產品的遙測技術。</li><li>第三工作法：創造公司文化，帶動嘗試與承擔風險和不斷重複的日常演練技能的風氣，必要的做法包含營造勇敢冒險的精神與高信任度、不斷鼓勵進行創新。</li></ul><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>我自己看完覺得，這是一本可以了解實際公司在導入開發運維一體化，遇到的問題與解決方法，從營運目標為方向，思考IT要如何配合，創造公司的最大利益。書中有滿多場景在描述IT與業務需求單位之間的溝通協調，以及實際了解營運目標。我自己的看法是，開發人員在開發產品或專案時，常常思考的是技術方面的問題，很少思考這個產品或專案能為客戶帶來什麼樣的價值，所以常常會有開發完，結果並不是客戶所想要的，導致之後的修改很頻繁，如果能以客戶的角度為出發點，或是讓客戶一同參與開發，及早得到客戶的反饋，這樣更能貼近客戶心中所想的東西，也能為客戶帶來價值。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 讀書筆記 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>程序員修練之道-從小工到專家(簡體中文) 筆記</title>
+      <link href="2018/01/22/PragmaticProgrammer/"/>
+      <url>2018/01/22/PragmaticProgrammer/</url>
+      
+        <content type="html"><![CDATA[<p>程序員修練之道-從小工到專家(簡體中文) 讀書筆記</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9787121123368" target="_blank" rel="noopener">程序員修練之道-從小工到專家(簡體中文)</a><br><img src="/2018/01/22/PragmaticProgrammer/books.jpg" alt></p><p>為The Pragmatic Programmer:Form Journeymen to Master的翻譯書</p><p>在看簡體中文書時對詞彙要稍微轉換與習慣一下，對岸的用詞不一定跟正體中文相同</p><p>本書介紹的一些方法與步驟，可以讓我們成為<code>更好的程式開發人員</code>，不論我們是獨立開發人員，或是團隊中的成員。</p><p>書中提供了大約70條守則，對我自己來說，滿重要的有以下幾條</p><ul><li>不要容忍破窗戶：當你看到糟糕的設計、錯誤的決策或糟糕的代碼時，就修正他們。如果不採取行動，破窗戶會越來越多，最後導致整個項目腐爛。</li><li>定期為你的知識資產投資：也就是要持續不斷學習。</li><li>批判的分析你讀到的與聽到的：要有實事求是的精神，不能人云亦云，培養獨立思考的能力</li><li>利用命令shell的力量：身為一個長期使用windows的使用者，被GUI慣養，相對生產力就降低很多，所以有機會的話要學習shell，增加自己的生產力。</li><li>用好一種編輯器：編輯器應該是自己手的延伸，確保編輯器是可配置、可擴展的</li><li>要修正問題，而不是發出指責</li><li>編寫能編寫代碼的代碼：也就是程式碼產生器(code gen)，它能大幅提高你的生產效率</li><li>要配置，不要集成：透過設定就能達到需求，而不用重新編譯</li><li>早重構、常重構</li><li>早測試、常測試、自動測試</li><li>要通過所有測試，編碼才算完成</li><li>一個bug只抓一次：每次出現bug時，用測試來捕捉，以防下一次出現一樣的bug</li></ul><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>如果有機會的話，這70條守則都可以自己閱讀過一次，裡面的說明都是作者實際的親身體驗，所得到的方法。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 讀書筆記 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>學徒模式-優秀軟體開發者的養成之路 筆記</title>
+      <link href="2018/01/17/ApprenticeshipPatterns/"/>
+      <url>2018/01/17/ApprenticeshipPatterns/</url>
+      
+        <content type="html"><![CDATA[<p>書中介紹身為一個軟體開發人員，要如何開始職涯，以及學習的方式，適合所有軟體開發人員閱讀</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9789862762561" target="_blank" rel="noopener">學徒模式-優秀軟體開發者的養成之路</a><br><img src="/2018/01/17/ApprenticeshipPatterns/books.jpg" alt></p><h2 id="關於學徒期"><a href="#關於學徒期" class="headerlink" title="關於學徒期"></a>關於學徒期</h2><p>身為經驗資淺的開發人員，在加入到新專案時，要去做一些別的成員不願意做的枯燥乏味的事，藉此從中學習與建立團隊的信任感，就像任何行業的學徒，剛開始一定是幫師傅做雜事，藉此磨練自己的技能，師傅才會慢慢地教功夫。</p><h2 id="關於職涯發展"><a href="#關於職涯發展" class="headerlink" title="關於職涯發展"></a>關於職涯發展</h2><p>如果要持續的成長，要把自己擺到自己最資淺的團隊中，要與資深與專業的團隊成員一起工作，對自己的成長最有幫助。</p><p>要為自己量身訂製自己的職涯地圖，公司與企業所規劃的不一定適合你</p><p>培養與釋放自己的熱情，軟體開發不單單只是一份工作，如果沒有熱情很快就會覺得痛苦</p><h2 id="關於學習"><a href="#關於學習" class="headerlink" title="關於學習"></a>關於學習</h2><p>在學習程式語言的過程中，不能堅守自己最熟練的那一塊技能，要倒空杯子去學習</p><p>不要害怕暴露自己的無知，有的時候別人給你的提點會非常有用</p><p>要把自己學習到的東西做成筆記或是部落格，可以做回顧參考，同時萃取過去的筆記當作未來寫筆記的參考</p><p>尋找自己的導師，跟著他一起學習</p><p>你的學習能力增加了成功經驗，但從失敗中學到的經驗更為寶貴</p><p>建立你的回饋的迴路，讓別人客觀評價你</p><p>建立你的閱讀書籍清單，也要經常閱讀經典書，並常與他人交換意見</p><p>閱讀完書籍可以嘗試與作者聯繫，表達自己的看法</p><h2 id="關於練習"><a href="#關於練習" class="headerlink" title="關於練習"></a>關於練習</h2><p>不能在工作上練習，因為工作會有失敗的風險，在工作之餘要建立一些拋棄式玩具，可以安全地練習。</p><p>經常閱讀已經成熟品的原始碼，汲取一些好的做法，並把它加入自己的工具箱</p><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>雖然這本書主要的目標讀者是剛起步的軟體開發人員，但對已經有工作經驗的開發人員來說，也是一本不錯職涯規劃書，美中不足的事，這本書在審校方面有一點小瑕疵，某幾個章節中有錯字與漏字，所以在閱讀的時候覺得有點奇怪，但主要內容是沒問題的。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> 讀書筆記 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]08-Jenkins與StyleCop整合，並產生圖表</title>
+      <link href="2018/01/16/Jenkins08/"/>
+      <url>2018/01/16/Jenkins08/</url>
+      
+        <content type="html"><![CDATA[<p>在<a href="StyleCop.md">[Visual Studio]使用StyleCop達成程式寫作風格一致</a>中，設定了StyleCop規則幫我們掃描程式碼不符合規則<br>的地方，現在要把掃描這個動作，交給Jenkins幫我們做，並透過Jenkins外掛套件呈現圖表，可以很快了解目前程式碼的狀況</p><a id="more"></a><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li><li>MSBuild</li><li>StyleCop</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>安裝Violations plugin</li><li>在建置後動作設定Report Xml位址</li></ul><h3 id="安裝Violations-plugin"><a href="#安裝Violations-plugin" class="headerlink" title="安裝Violations plugin"></a>安裝Violations plugin</h3><p>點選管理Jenkins，再點選管理外掛程式，安裝Violations plugin<br><img src="/2018/01/16/Jenkins08/Jenkins08-01.jpg" alt></p><h3 id="在建置後動作設定Report-Xml位址"><a href="#在建置後動作設定Report-Xml位址" class="headerlink" title="在建置後動作設定Report Xml位址"></a>在建置後動作設定Report Xml位址</h3><p>回到作業，在新增建置後動作選擇Report Violations<br><img src="/2018/01/16/Jenkins08/Jenkins08-02.jpg" alt></p><p>找到stylecop，填入<code>**/*/StyleCopViolations.xml</code>，會產生xml檔案在專案目錄下的<code>obj/組態名稱/</code>的資料夾內，這樣等一下圖表才有辦法產生<br><img src="/2018/01/16/Jenkins08/Jenkins08-03.jpg" alt></p><p>設定完成之後，馬上建置專案，完成後就會出現圖表在網頁上了<br><img src="/2018/01/16/Jenkins08/Jenkins08-04.jpg" alt></p><p>點圖表進去也會有詳細的報告<br><img src="/2018/01/16/Jenkins08/Jenkins08-05.jpg" alt></p><p>透過工具的輔助，可以即時知道專案的程式碼狀況，在還沒偏離規則太多的時候就可以進行修正</p><p>不過我在實作的過程中，發現下面有列出程式碼的Link，點過去卻是一片空白，找了滿多文章都沒遇到這個問題，後來在Jenkins的ISSUE Tracking發現也有人遇到一樣的<a href="https://issues.jenkins-ci.org/browse/JENKINS-29824" target="_blank" rel="noopener">問題</a>，看來這個ISSUE已經滿久了而且沒看到有人修正，如果有知道解法的朋友再請留言告訴我，謝謝。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Visual Studio </tag>
+            
+            <tag> Jenkins </tag>
+            
+            <tag> StyleCop </tag>
+            
+            <tag> Coding Style </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]07-設定建置完成後佈署至IIS站台</title>
+      <link href="2018/01/16/Jenkins07/"/>
+      <url>2018/01/16/Jenkins07/</url>
+      
+        <content type="html"><![CDATA[<p>接下來要設定Jenkins建置完作業之後佈署到遠端IIS站台，實現建置佈署自動化，在這之前需要先設定IIS站台與設定Visual Studio專案佈署檔。</p><p>關於IIS設定請看<a href="IISDeploy.md">[IIS]-設定允許遠端佈署</a><br>關於Visual Studio佈署請看<a href="VSProjectDeploy.md">[Visual Studio] - 設定Web Deploy發行檔案</a></p><p>請先完成以上這兩篇的設定再來看這篇文章</p><a id="more"></a><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li><li>MSBuild</li><li>IIS</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>加入MSBuild參數</li></ul><h3 id="加入MSBuild參數"><a href="#加入MSBuild參數" class="headerlink" title="加入MSBuild參數"></a>加入MSBuild參數</h3><p>利用MSBuild參數來執行建置完成後，指定佈署檔案後佈署，同時也可以指定組態佈署<br><a href="https://docs.microsoft.com/zh-tw/visualstudio/msbuild/msbuild-reference" target="_blank" rel="noopener">MSBuild參數參考</a></p><p>在MSBuild建置同時帶入這些參數</p><pre><code>/p:DeployOnBuild=true/p:PublishProfile=你的發行檔/p:AllowUntrustedCertificate=true/p:Password=IIS發行的使用者密碼/p:Configuration=組態名稱</code></pre><ul><li>DeployOnBuild：允許建置完發行</li><li>PublishProfile：設定在Visual Studio的發行檔</li><li>AllowUntrustedCertificate：允許未經信任的認證</li><li>Password：有權限使用MSDeploy的IIS使用者密碼</li><li>Configuration：組態名稱</li></ul><p><img src="/2018/01/16/Jenkins07/Jenkins07-01.jpg" alt></p><p>如果設定檔已經有輸入使用者帳號，這邊就不用再帶入帳號了</p><p>設定完成後直接建置作業，點選Console Output，就可以看到建置完成後直接佈署到IIS站台了</p><p><img src="/2018/01/16/Jenkins07/Jenkins07-02.jpg" alt></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Visual Studio </tag>
+            
+            <tag> IIS </tag>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Visual Studio]NuGet03-佈署套件到NuGet Server-使用類別庫專案</title>
+      <link href="2018/01/15/NuGet03/"/>
+      <url>2018/01/15/NuGet03/</url>
+      
+        <content type="html"><![CDATA[<p>在<a href="NuGet02.md">前一篇</a>介紹使用NuGet Package Explorer 來打包套件，但實際使用上我們的套件可能是來自類別庫程式碼，如果在程式碼撰寫完建置完成之後幫我們直接打包成套件上傳到NuGet Server，使用上比較方便，也不用每一次建置完都要去操作GUI打包，省下不少麻煩</p><a id="more"></a><p>本文範例使用Visual Studio 2017</p><p>由於在Visual Studio 2015 時有支援NuGet Project Template，但在2017我沒有找到，如果有更新的話再請跟我說</p><h2 id="下載-NuGet-Command-Line-CLI-工具"><a href="#下載-NuGet-Command-Line-CLI-工具" class="headerlink" title="下載 NuGet Command Line(CLI)工具"></a>下載 NuGet Command Line(CLI)工具</h2><p><a href="https://www.nuget.org/downloads" target="_blank" rel="noopener">NuGet Command Line(CLI) - 按此下載</a></p><p>存在任何一個資料夾(範例中我放至C:\Nuget)<br><img src="/2018/01/15/NuGet03/NuGet03-01.jpg" alt></p><p>設定環境變數，路徑為剛剛上一步的資料夾(範例中我放至C:\Nuget)<br><img src="/2018/01/15/NuGet03/NuGet03-02.jpg" alt></p><p>在命令提示字元輸入nuget，有跑出相關指令就表示設定完成<br><img src="/2018/01/15/NuGet03/NuGet03-03.jpg" alt></p><h2 id="使用指令建立-nuspec檔"><a href="#使用指令建立-nuspec檔" class="headerlink" title="使用指令建立.nuspec檔"></a>使用指令建立.nuspec檔</h2><p><a href="https://docs.microsoft.com/en-us/nuget/tools/nuget-exe-cli-reference" target="_blank" rel="noopener">NuGet 指令參考</a></p><p>接著在專案目錄下，使用NuGet指令建立.nuspec檔，這個是套件的描述檔，其實就是<a href="NuGet02.md">前一篇</a>用GUI設定的那些東西，只不過這邊改用設定檔的方式設定</p><p>產生.nuspec檔<br><img src="/2018/01/15/NuGet03/NuGet03-04.jpg" alt><br><img src="/2018/01/15/NuGet03/NuGet03-05.jpg" alt><br>加入至專案<br><img src="/2018/01/15/NuGet03/NuGet03-06.jpg" alt></p><h2 id="nuspec檔案結構描述"><a href="#nuspec檔案結構描述" class="headerlink" title=".nuspec檔案結構描述"></a>.nuspec檔案結構描述</h2><p>可參考<a href="https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Packaging/compiler/resources/nuspec.xsd" target="_blank" rel="noopener">nuspec.xsd結構描述</a></p><h2 id="nuspec檔案設定"><a href="#nuspec檔案設定" class="headerlink" title=".nuspec檔案設定"></a>.nuspec檔案設定</h2><p>詳細設定可參考<a href="https://docs.microsoft.com/en-us/nuget/schema/nuspec" target="_blank" rel="noopener">nuspec檔案設定</a></p><p>剛剛用指令產生的檔案有幾個保留字要注意一下(以<code>$$</code>包住的變數)<br>這些變數會對應至專案的AssemblyInfo.cs內的設定，在打包套件的時候會自動套用這些設定</p><table><thead><tr><th style="text-align:left">變數</th><th style="text-align:left">對應AssemblyInfo.cs</th></tr></thead><tbody><tr><td style="text-align:left">id</td><td style="text-align:left">專案組態設定的組件名稱(Assembly Name)</td></tr><tr><td style="text-align:left">version</td><td style="text-align:left">先對應AssemblyInformationalVersion，如果沒有，對應AssemblyVersion</td></tr><tr><td style="text-align:left">author</td><td style="text-align:left">AssemblyCompany</td></tr><tr><td style="text-align:left">description</td><td style="text-align:left">AssemblyDescription</td></tr><tr><td style="text-align:left">copyright</td><td style="text-align:left">AssemblyCopyright</td></tr><tr><td style="text-align:left">configuration</td><td style="text-align:left">打包時可以設定組態，透過組態打包不同的檔案</td></tr></tbody></table><p><img src="/2018/01/15/NuGet03/NuGet03-07.jpg" alt></p><h2 id="加入要打包的檔案"><a href="#加入要打包的檔案" class="headerlink" title="加入要打包的檔案"></a>加入要打包的檔案</h2><p>沿用<a href="NuGet02.md">前一篇</a>的類別庫專案，在nuspec檔中，加入參考檔案設定，為類別庫專案編譯好的dll</p><pre><code>&lt;files&gt;      &lt;file src=&quot;..\Bryan.Utility\bin\Debug\Bryan.Utility.*&quot; target=&quot;lib&quot; /&gt;&lt;/files&gt;</code></pre><p><img src="/2018/01/15/NuGet03/NuGet03-08.jpg" alt></p><h2 id="使用Automatic-Versions設定版號"><a href="#使用Automatic-Versions設定版號" class="headerlink" title="使用Automatic Versions設定版號"></a>使用Automatic Versions設定版號</h2><p>安裝<a href="https://marketplace.visualstudio.com/items?itemName=PrecisionInfinity.AutomaticVersions" target="_blank" rel="noopener">Automatic Versions - 按此下載</a></p><p>使用方式請看<a href="http://demo.tc/post/825" target="_blank" rel="noopener">Demo大的部落格</a></p><p>設定好之後，現在建置之後就會自動產生新版號，這樣做的用意是讓類別庫專案在建置完之後打包套件會套用最新的版號</p><p><img src="/2018/01/15/NuGet03/NuGet03-09.jpg" alt></p><h2 id="設定建置完成後打包套件並上傳"><a href="#設定建置完成後打包套件並上傳" class="headerlink" title="設定建置完成後打包套件並上傳"></a>設定建置完成後打包套件並上傳</h2><p>在這邊我設定的情境是Debug組態時只幫我建立nupkg，只有在release版本再幫我上傳到NuGet Server上</p><p>所以我設定分別設定Debug與Release的建置後事件，需要手動編輯專案檔</p><p>在專案上按右鍵卸載專案後，再進入編輯專案</p><p>加入以下這些設定</p><p><img src="/2018/01/15/NuGet03/NuGet03-10.jpg" alt></p><pre><code>nuget pack -Properties Configuration=$(Configuration) </code></pre><p>可以設定組態名稱，對應到.nuspec的configuration變數</p><pre><code>nuget push &quot;$(AssemblyName).*.nupkg&quot; apiKey -source hostServer</code></pre><ul><li>$(AssemblyName).*.nupkg ：打包完成的.nupkg檔名</li><li>apiKey：NuGet Server 的 apiKey</li><li>Source：NuGet Server位置</li></ul><p>PS.我找不到MSBuild取得組件版號的指令，所以Release的時候將全部刪掉.nupkg之後再push，如果有知道的讀者再請分享給我，感謝</p><p>Debug組態時：<br><img src="/2018/01/15/NuGet03/NuGet03-11.jpg" alt></p><p>Release組態時：<br><img src="/2018/01/15/NuGet03/NuGet03-12.jpg" alt></p><p>在Release組態，如果程式碼沒有更動，直接建置會失敗，原因是版號沒有更新，而NuGet CLI嘗試幫你推上NuGet Server，版號重覆會發生錯誤，這時只要重建專案產生新版號就可以了</p><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>透過NuGet CLI提供的指令，以及調整一下專案設定，就可以讓開發人員方便的去打包與佈署我們自己開發的套件，再也不需要去用惱人的GUI每一次都要打包了。</p><p>我的使用經驗是打包與佈署套件是交由Jenkins來做，同時也可以加入unit test，建置與測試都通過之後才會佈署到NuGet Server上，之後會再介紹如何在Jenkins上打包與佈署套件</p><h2 id="參考來源"><a href="#參考來源" class="headerlink" title="參考來源"></a>參考來源</h2><p><a href="http://demo.tc/post/825" target="_blank" rel="noopener">Demo - Automatic Versions 別再手動改版本號了</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Visual Studio </tag>
+            
+            <tag> NuGet </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Visual Studio]NuGet02-佈署套件到NuGet Server-NuGet Package Explorer</title>
+      <link href="2018/01/12/NuGet02/"/>
+      <url>2018/01/12/NuGet02/</url>
+      
+        <content type="html"><![CDATA[<p>在<a href="NuGet01.md">前一篇</a>，介紹了建置自有的NuGet Server，在這一篇要把我們開發好的元件佈署到NuGet server上，給需要引用的專案使用</p><a id="more"></a><p>本文範例使用Visual Studio 2017</p><h2 id="使用NuGet-Package-Explorer-打包與佈署套件"><a href="#使用NuGet-Package-Explorer-打包與佈署套件" class="headerlink" title="使用NuGet Package Explorer 打包與佈署套件"></a>使用NuGet Package Explorer 打包與佈署套件</h2><p><a href="https://github.com/NuGetPackageExplorer/NuGetPackageExplorer" target="_blank" rel="noopener">NuGet Package Explorer - 按此下載</a><br>NuGet Package Explore提供了方便好用的GUI讓你打包你的組件，適合一次性發布組件使用</p><p>下載安裝完成後，打開會如下圖，選擇新建套件<br><img src="/2018/01/12/NuGet02/NuGet02-01.jpg" alt></p><p>開啟之後，左邊的選項可以設定一些資訊，例如Id、Version、Title…等等，比較重要的是Version(版號)，套件上傳時，都要有新版號，有新版號在引用專案那邊才會知道有新的套件可以更新</p><p>右邊的視窗按右鍵，可以加入自己做好的組件，還有一些選項可以設定</p><ul><li>Add New File：加入新檔案至套件中</li><li>Add Existing File：將既有檔案加入套件中</li><li>Add New Folder：加入新的資料夾</li></ul><p>各個資料夾的功用：</p><ul><li>Content Folder：要加到專案內的檔案，要放置這個資料夾下</li><li>lib Folder：要實際加到專案參考內的檔案，要放置這個資料夾下</li><li>Tools Folder：放置一些script，在套件剛安裝或是解除安裝的時候執行</li><li>Build Folder：可以放置給MSBuild使用的target和property</li><li>Src Folder：要加到專案內的原始檔，要放置這個資料夾下</li></ul><p><img src="/2018/01/12/NuGet02/NuGet02-02.jpg" alt></p><p>我先準備一個簡單的類別庫，內容如下圖<br><img src="/2018/01/12/NuGet02/NuGet02-03.jpg" alt></p><p>把這個類別庫加入到我的套件中<br><img src="/2018/01/12/NuGet02/NuGet02-04.jpg" alt></p><p>接著要把這個做好的套件佈署上NuGet server，佈署之前要先儲存。之後在工具列的File，選擇publish<br>填入 </p><ol><li>NuGet server的位置</li><li>NuGet server的認證api key<br>確定好之後按publish<br><img src="/2018/01/12/NuGet02/NuGet02-05.jpg" alt></li></ol><p>回到NuGet server 首頁的packages，有出現metadata就是有上傳成功<br><img src="/2018/01/12/NuGet02/NuGet02-06.jpg" alt></p><h2 id="Visual-Studio-加入NuGet-server設定"><a href="#Visual-Studio-加入NuGet-server設定" class="headerlink" title="Visual Studio 加入NuGet server設定"></a>Visual Studio 加入NuGet server設定</h2><p>接下來要回到Visual Studio，設定NuGet server的位址，讓我們的專案可以抓到我們自製的套件</p><p>在Visual Studio的工具-&gt;選項，找到NuGet 套件封裝管理員的套件來源，新增我們建好的NuGet server位址<br><img src="/2018/01/12/NuGet02/NuGet02-07.jpg" alt></p><p>接著新增一個專案，在NuGet套件管理視窗，套件來源就可以選擇自建的NuGet server，同時也會列出有什麼套件可以安裝<br><img src="/2018/01/12/NuGet02/NuGet02-08.jpg" alt></p><p>剛剛把類別庫的dll放進lib資料夾，所以一安裝套件就會自動幫我們參考了，在程式中就可以使用<br><img src="/2018/01/12/NuGet02/NuGet02-09.jpg" alt></p><p>我更新類別庫dll，再新增一個method，版號變更為1.0.1版，然後重複上面提到的打包套件步驟，在NuGet套件管理就會看到新版本的套件了，同時也可以隨時退版<br><img src="/2018/01/12/NuGet02/NuGet02-10.jpg" alt><br><img src="/2018/01/12/NuGet02/NuGet02-11.jpg" alt></p><p>不過使用NuGet Package Explore打包與佈署套件稍嫌麻煩，每一次更新版本都要建置好dll之後去操作GUI打包，實在是有點惱人，下一篇文章會介紹如何使用類別庫專案直接建置成功後佈署到NuGet server，使用上比較方便。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Visual Studio </tag>
+            
+            <tag> NuGet </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Visual Studio]NuGet01-建立私有的NuGet server</title>
+      <link href="2018/01/12/NuGet01/"/>
+      <url>2018/01/12/NuGet01/</url>
+      
+        <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在團隊開發的過程中，會將一些共用的程式碼寫成類別庫專案開發成套件，供其他專案使用，如果都是在同一個解決方案下，利用專案參考很容易引用，但如果是其他專案需要引用，就要建置一個版本後用複製的方式給其他專案，使用上是比較不方便的，況且如果有更新版本，在佈署更新版時也會不太方便，這時候就可以利用建立私有的NuGet server來達到佈署自己開發的套件。</p><a id="more"></a><p>本文範例使用Visual Studio 2017</p><h2 id="建立Web應用程式專案"><a href="#建立Web應用程式專案" class="headerlink" title="建立Web應用程式專案"></a>建立Web應用程式專案</h2><p>開啟Visual Studio ，新增專案，選擇Web應用程式專案<br><img src="/2018/01/12/NuGet01/NuGet01-01.jpg" alt></p><p>專案範本選擇空白即可<br><img src="/2018/01/12/NuGet01/NuGet01-02.jpg" alt></p><h2 id="安裝NuGet-Server套件"><a href="#安裝NuGet-Server套件" class="headerlink" title="安裝NuGet Server套件"></a>安裝NuGet Server套件</h2><p>從NuGet上安裝NuGet Server，我選擇舊版的套件，因為他相依的套件比較少，但主要功能是一樣的，讀者也可以選擇最新版安裝<br><img src="/2018/01/12/NuGet01/NuGet01-03.jpg" alt></p><p>順利執行完成的話會如下圖<br><img src="/2018/01/12/NuGet01/NuGet01-04.jpg" alt></p><h2 id="設定NuGet-Server-Api-key"><a href="#設定NuGet-Server-Api-key" class="headerlink" title="設定NuGet Server Api key"></a>設定NuGet Server Api key</h2><p>NuGet Server可以設定一個認證的api key，以防讓沒有經過認證的套件上到NuGet Server</p><p>在Web.config中找到<code>&lt;add key=&quot;requireApiKey&quot; value=&quot;true&quot; /&gt;</code>，確認值為true，代表有開啟需要認證apikey<br>找到<code>&lt;add key=&quot;apiKey&quot; value=&quot;&quot; /&gt;</code>這個設定，value可以填入自己產生的key，在這邊我用Guid產生一組新的驗證碼</p><p><img src="/2018/01/12/NuGet01/NuGet01-05.jpg" alt></p><h2 id="佈署至遠端IIS"><a href="#佈署至遠端IIS" class="headerlink" title="佈署至遠端IIS"></a>佈署至遠端IIS</h2><p>接著將專案佈署至遠端IIS站台，完成後如下圖<br><img src="/2018/01/12/NuGet01/NuGet01-06.jpg" alt></p><p>點選here，會列出目前站台上的套件列表，如果在這邊有發現Access Deny之類的錯誤，請先確定IIS站台的User安全性有開啟允許寫入<br><img src="/2018/01/12/NuGet01/NuGet01-07.jpg" alt></p><p>到這邊就已經完成建置私有NuGet Server了，接下來介紹如何將寫好的程式碼透過套件的方式發布到NuGet server，給其他專案引用參考</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Visual Studio </tag>
+            
+            <tag> NuGet </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>大話設計模式 練習與筆記</title>
+      <link href="2018/01/11/DesignPatternPractice/"/>
+      <url>2018/01/11/DesignPatternPractice/</url>
+      
+        <content type="html"><![CDATA[<p>在這邊紀錄一下看完大話設計模式的心得與重點</p><p>文末附上我練習過程的程式碼</p><a id="more"></a><h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9789866761799" target="_blank" rel="noopener">大話設計模式</a><br><img src="/2018/01/11/DesignPatternPractice/books.jpg" alt></p><p>書中藉由兩個工程師的對話，與現實發生的情境來介紹Design Pattern，對我在學習Desgin Pattern的抽象概念幫助很大</p><p>將書中的例子都練習過一遍，收穫滿大的。</p><h2 id="Design-Pattern-的根本-物件導向"><a href="#Design-Pattern-的根本-物件導向" class="headerlink" title="Design Pattern 的根本-物件導向"></a>Design Pattern 的根本-物件導向</h2><h3 id="物件導向的語言特性"><a href="#物件導向的語言特性" class="headerlink" title="物件導向的語言特性"></a>物件導向的語言特性</h3><ul><li><p>封裝：將變化封裝至函式中，外部程式碼在使用時只需要知道方法簽章，不需要了解內部實作的細節。</p></li><li><p>繼承：可以從父類別衍生出子類別，子類別可以實作屬於自己的函式。</p></li><li><p>多型：從父類別衍生出的子類別，可以替代子類別，而不會出錯</p></li></ul><h3 id="物件導向程式設計的基本原則-SOLID"><a href="#物件導向程式設計的基本原則-SOLID" class="headerlink" title="物件導向程式設計的基本原則 - SOLID"></a>物件導向程式設計的基本原則 - SOLID</h3><ul><li><p>單一職責(Single responsibility principle)： 對一個類別來說，應該只有一個引起他變化的原因。如果類別承擔的職責太多，在產生變化時，會遭受意想不到的破壞。如果你想到超過一個原因去修改類別，那該類別就承擔了過多的職責。</p></li><li><p>開放封閉(Open/closed principle)：設計類別時對類別的擴充保持開放，對修改保持封閉。當面對需求變化時，一定會有無法封閉的變化，這時候就必須構造抽象點來隔離那些變化。</p></li><li><p>里氏替換(Liskov substitution principle)： 子類別必須可以替換他們的父類別，子類別的可替換性使得父類別的模組在無需修改的情況下可以擴展。</p></li><li><p>介面隔離(Interface segregation principle)： 針對介面程式設計，而非對<code>實現(Implement)</code>程式設計。抽取相同功能形成介面，讓各類別去實作，對呼叫的程式端來說，只須在意開放出來介面提供的功能，且將來需要抽換時只需要實作相同介面的類別即可。</p></li><li><p>依賴倒轉(Dependency inversion principle) 高層模組不應該依賴低層模組，兩者都應該依賴抽象。模組之間如果太過耦合，很容易出現改了A被迫要修改B，如果都依賴抽象，兩者都只要關注自己本身即可。</p></li></ul><p>我的看法：在練習與反思的過程中，我自己認為Design Pattern是兩面刃</p><h3 id="程式面"><a href="#程式面" class="headerlink" title="程式面"></a>程式面</h3><ol><li>它有效解決了某些特定問題，讓程式的架構更為漂亮，也更好擴充跟維護</li><li>留下擴充點可以為後來功能擴充做準備，但擴充點不一定都會用到</li></ol><h3 id="管理面"><a href="#管理面" class="headerlink" title="管理面"></a>管理面</h3><ol><li>如果團隊成員經驗不是那麼足夠，會無法理解Design Pattern的意義與實作</li><li>如果任何需求都要套用Design Pattern，會造成過度設計(over design)，在技術決策上需要多加考量</li></ol><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>學習Design Pattern的時候，也要思考要如何使用它，只要有掌握物件導向的設計原則，不必一定要拘泥於某一些Pattern，或許你也可以創造屬於你自己的Design Pattern，因為Design Pattern本來就是解決特定問題的方法。</p><p>我附上我練習的程式碼，每一篇都有節錄介紹與重點，請大家自行參考囉</p><p><a href="https://github.com/BryanYu/DesignPatternPractice" target="_blank" rel="noopener">DesignPatternPractice</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> Design Pattern </tag>
+            
+            <tag> 讀書筆記 </tag>
+            
+            <tag> 練習 </tag>
+            
+            <tag> 重構 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Visual Studio]使用StyleCop達成程式寫作風格一致</title>
+      <link href="2018/01/08/StyleCop/"/>
+      <url>2018/01/08/StyleCop/</url>
+      
+        <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在多人協同開發專案時，常常會有寫作風格不一致的問題，會讓新加入團隊的成員無法適應。有些團隊會制定coding standard，但如果沒有自動審核與把關的機制，很容易就會流於形式。在Visual Studio的專案，可以使用StyleCop這個工具來輔助我們讓團隊成員遵循我們所設定好的coding rule，同時StyleCop也可以與CI整合，定時幫我們review程式碼，看是不是有不符合規範的程式碼。</p><a id="more"></a><p>本文範例使用Visual Studio 2017 專案來當作範例</p><h2 id="下載與安裝StyleCop"><a href="#下載與安裝StyleCop" class="headerlink" title="下載與安裝StyleCop"></a>下載與安裝StyleCop</h2><ol><li>到Visual Studio， 工具-&gt; 擴充功能與更新<br><img src="/2018/01/08/StyleCop/StyleCop01.jpg" alt></li><li>尋找StyleCop，下載並安裝<br><img src="/2018/01/08/StyleCop/StyleCop02.jpg" alt></li><li>打開專案，在專案上按右鍵，如果有出現圖中這三個選項即安裝完成<br><img src="/2018/01/08/StyleCop/StyleCop03.jpg" alt></li></ol><h2 id="如何使用"><a href="#如何使用" class="headerlink" title="如何使用"></a>如何使用</h2><p>當你對你的C#檔案按右鍵，就會出現Run StyleCop，按下去執行完成後，下面的警告欄就會顯示你的程式碼違反了哪一些規則<br><img src="/2018/01/08/StyleCop/StyleCop04.jpg" alt></p><p>點擊警告欄即可跳至該修改的地方，以下圖的例子來說，我點了SA1600那條警告，指標就會移到Class上，這條的警告是我的Class上面沒有寫Summary<br><img src="/2018/01/08/StyleCop/StyleCop05.jpg" alt></p><p>我補上了Summary之後，重新執行，警告就會消失了<br><img src="/2018/01/08/StyleCop/StyleCop06.jpg" alt></p><h2 id="StyleCop-規則設定"><a href="#StyleCop-規則設定" class="headerlink" title="StyleCop 規則設定"></a>StyleCop 規則設定</h2><p>StyleCop提供了很多規則，在團隊的使用上可以依照團隊的需求制訂規則。</p><p>在專案上按右鍵，選擇StyleCop Setting<br><img src="/2018/01/08/StyleCop/StyleCop07.jpg" alt></p><p>即會出現規則選擇視窗，依照不同的需求挑選<br><img src="/2018/01/08/StyleCop/StyleCop08.jpg" alt></p><p>選擇完規則後，會儲存至專案資料夾下的Settings.StyleCop檔案，未來如果有方案或其他專案要使用這份規則，就放到方案或專案資料夾下，就會自動套用規則了<br><img src="/2018/01/08/StyleCop/StyleCop09.jpg" alt></p><h2 id="StyleCop與MSBuild整合"><a href="#StyleCop與MSBuild整合" class="headerlink" title="StyleCop與MSBuild整合"></a>StyleCop與MSBuild整合</h2><p>StyleCop有提供與MSBuild整合的機制，可以讓你的專案在建置的同時去執行StyleCop的程式碼分析，將結果標示為警告或是建置錯誤。</p><p>從Nuget上安裝StyleCop.MSBuild套件<br><img src="/2018/01/08/StyleCop/StyleCop10.jpg" alt></p><p>安裝完成後，專案建置時就會執行StyleCop，會在警告欄顯示沒有通過的規則<br><img src="/2018/01/08/StyleCop/StyleCop11.jpg" alt></p><h2 id="將StyleCop警告視為建置失敗"><a href="#將StyleCop警告視為建置失敗" class="headerlink" title="將StyleCop警告視為建置失敗"></a>將StyleCop警告視為建置失敗</h2><p>調整專案的StyleCop設定，可以將StyleCop警告視為失敗</p><p>在專案上按右鍵，選擇卸載專案<br><img src="/2018/01/08/StyleCop/StyleCop12.jpg" alt></p><p>在專案上按右鍵，選擇編輯專案<br><img src="/2018/01/08/StyleCop/StyleCop13.jpg" alt></p><p>找到StyleCopTreatErrorsAsWarnings這個設定，設定為false，讓StyleCop的警告視為建置錯誤，完成後重新載入專案<br><img src="/2018/01/08/StyleCop/StyleCop14.jpg" alt></p><p>重新對專案建置之後就會出現建置錯誤了<br><img src="/2018/01/08/StyleCop/StyleCop15.jpg" alt></p><h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>有了StyleCop，可以讓專案的所有開發人員，撰寫風格一致的程式碼，提高可讀性，也降低新進開發人員的閱讀程式碼門檻。同時透過工具的輔助，可以更有效率的去修改成風格一致的程式碼。還可以與Jenkins整合，定時檢視專案的程式碼是不是有不符合規則的地方，就可以在第一時間修正。</p><p>最後我附上我自己或是團隊開發時所設定的規則當作參考，不一定符合你們自己的團隊或個人開發習慣，請斟酌使用。<br><a href="Settings.StyleCop">StyleCop Setting - 按此下載</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Visual Studio </tag>
+            
+            <tag> StyleCop </tag>
+            
+            <tag> Coding Style </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>重構-改善既有的程式的設計-第二版 練習與筆記</title>
+      <link href="2018/01/07/RefactorPactice/"/>
+      <url>2018/01/07/RefactorPactice/</url>
+      
+        <content type="html"><![CDATA[<p>前陣子終於將經典書重構-改善既有的程式的設計完完整整練習過一次</p><p>在這邊紀錄一下重點與看法 文末附上我練習過程的程式碼</p><p>原書範例使用JAVA，我使用C#重新改寫書上的範例 </p><a id="more"></a><p>書籍介紹：<a href="https://www.tenlong.com.tw/products/9789861547534" target="_blank" rel="noopener">重構-改善既有的程式的設計-第二版</a><br><img src="/2018/01/07/RefactorPactice/books.jpg" alt><br>為Refactoring：Improving The Design of Existing Code的中文翻譯書</p><h2 id="重構的定義"><a href="#重構的定義" class="headerlink" title="重構的定義"></a>重構的定義</h2><p>不改變外在的行為的前提下，對程式碼做出修正，以改進程式的內部結構。本質上來說，重構就是在<code>程式碼寫好之後改進它的設計</code></p><h2 id="重構的原則"><a href="#重構的原則" class="headerlink" title="重構的原則"></a>重構的原則</h2><ul><li>需要有穩定且堅固的測試機制</li><li>以微小步伐修改程式，如果引入錯誤便可以很容易發現</li><li>如果覺得比較困難增加新的功能，就先重構後再增加</li><li>只有寫出人類容易理解的程式碼，才是優秀的程式員</li></ul><h2 id="兩頂帽子-重構與增加新功能"><a href="#兩頂帽子-重構與增加新功能" class="headerlink" title="兩頂帽子 - 重構與增加新功能"></a>兩頂帽子 - 重構與增加新功能</h2><ul><li>重構：不能增加新功能，只管修改程式結構。只在絕對必要的時刻才修改測試。 </li><li>增加新功能：不應該修改既有程式碼，只管增加新功能以通過測試</li></ul><p>如果增加新功能很困難，那就先重構它</p><h2 id="為何要重構"><a href="#為何要重構" class="headerlink" title="為何要重構?"></a>為何要重構?</h2><ul><li>改進軟體設計：一個主要的方向就是<code>消除重複的程式碼</code>。</li><li>使軟體更容易被理解：提高可讀性。</li><li>幫你找到Bug</li><li>幫你提高編程速度<br><font color="blue">我的看法：<font></font></font></li><li><font color="blue">藉由練習的過程中，我覺得重構還可以提升自己寫code的技巧<font></font></font></li><li><font color="blue">我有使用Resharp進行重構，同時也掌握了工具的使用技巧，所以是有提升我的開發速度的<font></font></font></li></ul><h2 id="何時重構"><a href="#何時重構" class="headerlink" title="何時重構?"></a>何時重構?</h2><ul><li>三次法則：事不過三，三則重構</li><li>增加功能的時候重構</li><li>修改錯誤的時候重構</li><li>Code Review的時候重構</li></ul><h2 id="重構的現實"><a href="#重構的現實" class="headerlink" title="重構的現實"></a>重構的現實</h2><ul><li>不知道如何重構</li><li>如果這些利益是需要長時間才能展現的，何必現在付出努力? 長遠看來，當專案收穫這些利益的時候，或許自己已經不在職位上了</li><li>程式碼重構是額外的工作，老闆付錢給你，是要你增加新功能</li><li>重構可能破壞現有程式<br><font color="blue">我的看法：站在企業的角度，重構對企業來說無法實質獲得收益，對很多公司來說，產品程式碼只要會動就好，不管是不是寫得不好維護。但從另一個角度來說，程式碼不好維護、不易讀會造成程式開發人員花了更多的時間去解bug、理解程式碼，這些都是隱性成本。但對程式開發人員來說，大規模的重構或許不是那麼容易可以執行，但我們可以從小地方開始做起，一小步一小步的改善。<br>可以仿效童子軍法則：離開營地時比剛來的時候乾淨-程式碼簽入時比剛簽出的時候更為完善<font></font></font></li></ul><h2 id="如何重構，在哪裡重構"><a href="#如何重構，在哪裡重構" class="headerlink" title="如何重構，在哪裡重構"></a>如何重構，在哪裡重構</h2><ul><li>使用自動化工具來識別哪裡需要重構，以及提供重構的建議<br><font color="blue">我的看法：Resharper是一套不錯的重構工具<font></font></font></li></ul><h2 id="安全的進行重構"><a href="#安全的進行重構" class="headerlink" title="安全的進行重構"></a>安全的進行重構</h2><ul><li>相信自己的編碼能力</li><li>相信編譯器會捕捉遺漏的錯誤</li><li>相信測試套件能捕捉你和編譯器都遺漏的錯誤</li><li>相信程式碼複審(code review)能捕捉你、編譯器、測試套件都遺漏的錯誤</li></ul><p><font color="blue">我的看法：有測試案例保護來進行重構會比較安心一點<font></font></font></p><h2 id="安全重構的侷限性"><a href="#安全重構的侷限性" class="headerlink" title="安全重構的侷限性"></a>安全重構的侷限性</h2><ul><li>程式員有可能犯錯</li><li>有編譯器無法捕捉的錯誤，特別是與繼承相關的作用域錯誤</li><li>無法保證測試套件涵蓋所有可能情況</li><li>程式碼複審人員可能無法徹底檢查別人的程式碼</li></ul><h2 id="學習重構的方法"><a href="#學習重構的方法" class="headerlink" title="學習重構的方法"></a>學習重構的方法</h2><ul><li><p>隨時挑一個目標：某個程式碼開始發臭，就應該將問題解決掉。你應該朝目標前進，達成後就停止。<br><font color="blue">我的看法：記得要有測試案例保護才可以開始進行<font></font></font></p></li><li><p>沒把握就停下來：你無法證明自己所做的一切還能夠保持程式的原意，就停下來，有改善的成果就發布，沒有的話就撤銷。<br><font color="blue">我的看法：一次一小步的重構與改善，確定沒有改壞之後就發布。<font></font></font></p></li><li><p>學習原路返回：當重構已經失控時，要果斷放棄，回到上一個測試可以通過的程式碼版本。<br><font color="blue">我的看法：一定要使用版本控制系統來搭配<font></font></font></p></li><li><p>二重奏：兩人結對重構，你的搭檔會看到與想到你沒發現的東西，當你的夥伴不知道你在重構什麼東西，通常自己也會不知道在重構什麼。在重構之前先與夥伴討論目標與方向，這樣夥伴才能指出你的錯誤。</p></li></ul><p>書上介紹了很多程式碼的壞味道(Bad Smell)，以及要採用哪些方法修改</p><p>我都寫在我的Github專案上，每一個方法都有一些簡介，還有我練習的過程</p><p>就請大家自行參考囉，希望能幫助到你</p><p><a href="https://github.com/BryanYu/RefactorPractice" target="_blank" rel="noopener">RefactorPractice</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> C# </tag>
+            
+            <tag> 讀書筆記 </tag>
+            
+            <tag> 練習 </tag>
+            
+            <tag> 重構 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Visual Studio] - 設定Web Deploy發行檔案</title>
+      <link href="2018/01/07/VSProjectDeploy/"/>
+      <url>2018/01/07/VSProjectDeploy/</url>
+      
+        <content type="html"><![CDATA[<p>這篇文章介紹如何設定Visual Studio專案的 Web Deploy檔案，並發行到遠端IIS Server上</p><p>範例中使用的專案為我的github上的專案，讀者也可以替換成自己的專案</p><p>請先閱讀<a href="/_post/IISDeploy.md">[IIS]-設定允許遠端佈署</a>並設定完成之後再閱讀這篇文章</p><a id="more"></a><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>設定Web Deploy發行檔案</li></ul><h3 id="設定Web專案遠端部署"><a href="#設定Web專案遠端部署" class="headerlink" title="設定Web專案遠端部署"></a>設定Web專案遠端部署</h3><p>在專案上按右鍵，點選發行<br><img src="/2018/01/07/VSProjectDeploy/VSProjectDeploy01.jpg" alt></p><p>選擇IIS、FTP等，按發行<br><img src="/2018/01/07/VSProjectDeploy/VSProjectDeploy02.jpg" alt></p><p>填入相關資訊</p><ol><li>Publish Method：選擇Web Deploy</li><li>伺服器：即遠端IIS Server位置</li><li>網站名稱：即站台名稱</li><li>使用者名稱：即IIS Manager User名稱</li><li>密碼：即IIS Manager User密碼</li><li>目的地URL：站台的Url</li><li>會出現憑證錯誤的視窗，直接按接受即可</li><li><p>點選驗證連線，會建立測試連線，看是否可以連線到站台<br><img src="/2018/01/07/VSProjectDeploy/VSProjectDeploy03.jpg" alt></p></li><li><p>確定連線成功後，會有綠色的勾勾</p></li><li>按下儲存，就會開始發行到遠端站台<br><img src="/2018/01/07/VSProjectDeploy/VSProjectDeploy04.jpg" alt></li></ol><p>下面的建置輸出畫面，會顯示遠端部署的資訊，完成後會自動打開剛剛設定的目的地URL<br><img src="/2018/01/07/VSProjectDeploy/VSProjectDeploy05.jpg" alt></p><p>遠端站台也有我們剛剛透過Web Deploy部署上去的檔案<br><img src="/2018/01/07/VSProjectDeploy/VSProjectDeploy06.jpg" alt></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Visual Studio </tag>
+            
+            <tag> IIS </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[IIS]-設定允許遠端佈署</title>
+      <link href="2018/01/07/IISDeploy/"/>
+      <url>2018/01/07/IISDeploy/</url>
+      
+        <content type="html"><![CDATA[<p>Visual Studio專案有多種佈署方式，常見的有檔案系統、Web Deploy、FTP…等等</p><p>如果網路環境允許的情況下，使用Web Deploy佈署是比較輕鬆的</p><p>這篇文章介紹在IIS Server設定支援遠端佈署功能</p><a id="more"></a><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>IIS</li><li>Web platform installer </li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>下載與安裝Web platform installer 工具 <a href="https://www.microsoft.com/web/downloads/platform.aspx" target="_blank" rel="noopener">按此下載</a></li><li>安裝Web Deploy</li><li>設定IIS站台允許遠端佈署</li></ul><h3 id="安裝Web-Deploy"><a href="#安裝Web-Deploy" class="headerlink" title="安裝Web Deploy"></a>安裝Web Deploy</h3><ol><li>搜尋Web Deploy</li><li>安裝下列這三項</li></ol><ul><li>Web Deploy 3.6</li><li>Web Deploy 3.6 for Hosting Servers</li><li>Web Deploy 3.6 without bundled SQL Support<br><img src="/2018/01/07/IISDeploy/IISDeploy01.jpg" alt></li></ul><h3 id="設定IIS站台允許遠端佈署"><a href="#設定IIS站台允許遠端佈署" class="headerlink" title="設定IIS站台允許遠端佈署"></a>設定IIS站台允許遠端佈署</h3><ul><li><p>確認IIS Server允許遠端連線<br><img src="/2018/01/07/IISDeploy/IISDeploy02.jpg" alt><br><img src="/2018/01/07/IISDeploy/IISDeploy03.jpg" alt></p></li><li><p>建立IIS Manager User(要用來部署的User帳號密碼)<br><img src="/2018/01/07/IISDeploy/IISDeploy04.jpg" alt></p></li></ul><ol><li>新增使用者</li><li>使用者名稱</li><li>密碼</li><li>確認密碼</li><li>確定新增<br><img src="/2018/01/07/IISDeploy/IISDeploy05.jpg" alt></li></ol><ul><li>新增原則對應<br><img src="/2018/01/07/IISDeploy/IISDeploy06.jpg" alt></li></ul><ol><li>新增原則</li><li>選擇Deploy Applications with Content</li><li>確定provider有contentPath、createApp、iisApp、setAcl</li><li>確定新增<br><img src="/2018/01/07/IISDeploy/IISDeploy07.jpg" alt><br><img src="/2018/01/07/IISDeploy/IISDeploy08.jpg" alt><br>將剛剛新增的IIS Manager User加入進來<br><img src="/2018/01/07/IISDeploy/IISDeploy09.jpg" alt></li></ol><ul><li>設定使用者與站台部署權限</li></ul><ol><li>在站台按右鍵</li><li>選擇Deploy</li><li><p>選擇Configure Web Deploy Publishing<br><img src="/2018/01/07/IISDeploy/IISDeploy10.jpg" alt></p></li><li><p>設定使用者部署權限</p></li><li>選擇IIS Manager</li><li>按Select</li><li>在清單中選擇我們剛剛之前步驟所建立的IIS Manager User</li><li><p>確定<br><img src="/2018/01/07/IISDeploy/IISDeploy11.jpg" alt></p></li><li><p>確定好選擇的Users</p></li><li>按SetUp</li><li>Results會顯示設定的資訊，並產生PublishSettings檔案<br><img src="/2018/01/07/IISDeploy/IISDeploy12.jpg" alt></li></ol>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> IIS </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]06-新增作業與執行</title>
+      <link href="2018/01/07/Jenkins06/"/>
+      <url>2018/01/07/Jenkins06/</url>
+      
+        <content type="html"><![CDATA[<p>經過前面幾篇的前置作業後，接下來我們要介紹Jenkins的重要步驟</p><p>新增作業(Job)</p><p>可以設定你要怎麼建置專案，哪時候建置，建置完的動作…等等</p><a id="more"></a><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li><li>Git</li><li>NuGet</li><li>MSBuild</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>建立新的作業</li><li>設定作業的相關資訊</li><li>執行作業</li></ul><h2 id="建立新的作業"><a href="#建立新的作業" class="headerlink" title="建立新的作業"></a>建立新的作業</h2><ul><li><p>新增作業<br><img src="/2018/01/07/Jenkins06/Jenkins06-job01.jpg" alt></p></li><li><p>設定作業名稱、專案類型</p><ol><li>作業名稱</li><li>專案類型<br><img src="/2018/01/07/Jenkins06/Jenkins06-job02.jpg" alt></li></ol></li></ul><h2 id="設定作業的相關資訊"><a href="#設定作業的相關資訊" class="headerlink" title="設定作業的相關資訊"></a>設定作業的相關資訊</h2><ul><li><p>General設定(依照自己的需求做設定)<br><img src="/2018/01/07/Jenkins06/Jenkins06-job03.jpg" alt></p></li><li><p>原始碼管理</p><ol><li>選擇Git</li><li>填入Repository Url</li><li>選擇Credentials (請參考<a href="/_post/Jenkins04.md">[Jenkins]04-加入Git要使用的驗證-使用http</a>)</li><li>選擇要建置的branch<br><img src="/2018/01/07/Jenkins06/Jenkins06-job04.jpg" alt></li></ol></li><li><p>建置觸發程序：可以設定如何觸發建置，依照自己的需求做設定<br><img src="/2018/01/07/Jenkins06/Jenkins06-job05.jpg" alt></p></li><li><p>建置環境：可以設定建置環境，依照自己的需求做設定<br><img src="/2018/01/07/Jenkins06/Jenkins06-job06.jpg" alt></p></li><li><p>建置：<br>這邊可以加入多個步驟，會依照順序執行，Visual Studio專案要先還原NuGet套件，才能順利建置，所以我們第一個步驟是先還原NuGet套件</p></li><li><p>利用NuGet restore指令還原套件<br><img src="/2018/01/07/Jenkins06/Jenkins06-job08.jpg" alt></p></li><li><p>設定專案建置的資訊</p><ol><li>新增建置步驟，選Build a Visual Studio Project or solution using MSBuild</li><li>選擇設定好的MSBuild (請參考<a href="/post/Jenkins03.md">[Jenkins]03-安裝與使用MSBuild</a>)</li><li>要建置的專案檔(sln或csproj)</li><li>要帶入MSBuild的參數 可參考：<a href="https://docs.microsoft.com/zh-tw/visualstudio/msbuild/common-msbuild-project-properties" target="_blank" rel="noopener">一般 MSBuild 專案屬性</a><br><img src="/2018/01/07/Jenkins06/Jenkins06-job07.jpg" alt></li></ol></li></ul><p>設定完成後按儲存及完成</p><h2 id="執行作業"><a href="#執行作業" class="headerlink" title="執行作業"></a>執行作業</h2><p>回到儀錶板首頁，就會有我們剛剛建立好的作業<br><img src="/2018/01/07/Jenkins06/Jenkins06-job09.jpg" alt></p><p>進入之後可以看到一些設定與資訊</p><ol><li>可以馬上啟動建置作業</li><li>會列出最近幾次建置的狀況<br><img src="/2018/01/07/Jenkins06/Jenkins06-job10.jpg" alt></li></ol><p>點選Console OutPut可以看建置的log紀錄<br><img src="/2018/01/07/Jenkins06/Jenkins06-job11.jpg" alt><br><img src="/2018/01/07/Jenkins06/Jenkins06-job12.jpg" alt></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]05-安裝NuGet</title>
+      <link href="2018/01/07/Jenkins05/"/>
+      <url>2018/01/07/Jenkins05/</url>
+      
+        <content type="html"><![CDATA[<p>NuGet是Visual Studio專案所使用的套件管理工具，可以很方便的加入套件</p><p>每當我們第一次建置專案時，都要進行已參考套件的還原，將套件載到自己的電腦中</p><p>這篇文章會介紹安裝NuGet到Jenkins上，當抓取程式碼開始進行建置時，也是需要進行套件還原</p><a id="more"></a><h2 id="環境"><a href="#環境" class="headerlink" title="環境"></a>環境</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li><li>NuGet.exe</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>下載NuGet Command Line 工具 <a href="https://www.nuget.org/downloads" target="_blank" rel="noopener">按此下載</a></li><li>設定Windows環境變數</li><li>測試是否有設定成功</li></ul><h3 id="下載NuGet-Command-Line-工具"><a href="#下載NuGet-Command-Line-工具" class="headerlink" title="下載NuGet Command Line 工具"></a>下載NuGet Command Line 工具</h3><ul><li>下載後放置資料夾中，範例中我放在C:\nuget資料夾下<br><img src="/2018/01/07/Jenkins05/Jenkins05-nuget01.jpg" alt></li></ul><h3 id="設定Windows環境變數"><a href="#設定Windows環境變數" class="headerlink" title="設定Windows環境變數"></a>設定Windows環境變數</h3><ul><li><p>將剛剛路徑設定Windows環境變數<br><img src="/2018/01/07/Jenkins05/Jenkins05-nuget02.jpg" alt></p></li><li><p>開啟命令提示字元(cmd)，輸入nuget，有跑出指令help即有設定完成<br><img src="/2018/01/07/Jenkins05/Jenkins05-nuget03.jpg" alt></p></li></ul><p>到這邊已經設定完成，接下來我們要建立Jenkins的作業，來幫我們抓取程式碼與建置。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]04-加入Git要使用的驗證-使用http</title>
+      <link href="2018/01/07/Jenkins04/"/>
+      <url>2018/01/07/Jenkins04/</url>
+      
+        <content type="html"><![CDATA[<p>通常我們的Git都是需要通過驗證之後才能抓取程式碼</p><p>驗證機制通常有SSH與HTTP驗證</p><p>這篇文章會介紹如何設定Jenkins要使用的HTTP驗證</p><a id="more"></a><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>加入帳號密碼</li></ul><h3 id="加入帳號密碼"><a href="#加入帳號密碼" class="headerlink" title="加入帳號密碼"></a>加入帳號密碼</h3><ul><li><p>在Jenkins點選Credentials，在點選右邊的Jenkins<br><img src="/2018/01/07/Jenkins04/Jenkins04-auth01.jpg" alt></p></li><li><p>點選 Global credentials (unrestricted)<br><img src="/2018/01/07/Jenkins04/Jenkins04-auth02.jpg" alt></p></li><li><p>點選 Add Credentials<br><img src="/2018/01/07/Jenkins04/Jenkins04-auth03.jpg" alt></p></li><li><p>填上給Git認證的帳號與密碼<br><img src="/2018/01/07/Jenkins04/Jenkins04-auth04.jpg" alt></p></li></ul><p>到這邊就已經完成加入Git要使用的驗證，接下來我們要介紹安裝NuGet</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]03-安裝與使用MSBuild</title>
+      <link href="2018/01/07/Jenkins03/"/>
+      <url>2018/01/07/Jenkins03/</url>
+      
+        <content type="html"><![CDATA[<p>設定Jenkins使用MSBuild來幫我們建置Visual Studio專案</p><a id="more"></a><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li><li>Visual Studio 2017 Community<br>PS.也可以使用其他版本Visual Studio，在這邊我使用2017來做介紹</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>下載與安裝Visual Studio 2017 Community - <a href="https://www.visualstudio.com/zh-hant/downloads/" target="_blank" rel="noopener">按此下載</a></li><li>安裝Jenkins MSBuild Plugin </li><li>設定MSBuild.exe位置 </li></ul><h3 id="安裝Jenkins-MSBuild-Plugin"><a href="#安裝Jenkins-MSBuild-Plugin" class="headerlink" title="安裝Jenkins MSBuild Plugin"></a>安裝Jenkins MSBuild Plugin</h3><ul><li>在Jenkins首頁，點選管理Jenkins，管理外掛程式<br><img src="/2018/01/07/Jenkins03/Jenkins03-msbuild01.jpg" alt></li><li>尋找MSBuild Plugin ，並安裝完成即可使用<br><img src="/2018/01/07/Jenkins03/Jenkins03-msbuild02.jpg" alt></li></ul><h3 id="設定MSBuild-exe位置"><a href="#設定MSBuild-exe位置" class="headerlink" title="設定MSBuild.exe位置"></a>設定MSBuild.exe位置</h3><ul><li>在Jenkins首頁，點選管理Jenkins，右邊選Global Tool Configuration<br><img src="/2018/01/07/Jenkins03/Jenkins03-msbuild03.jpg" alt></li><li>設定MSbuild.exe相關資訊<ol><li>名稱</li><li>路徑位置%ProgramFiles(x86)%/Microsoft Visual Studio/2017/Community/MSBuild/15.0/Bin/MSBuild.exe)<br>PS.這邊我是使用2017，如果你是使用別的版本的Visual Studio，路徑不一定會在這個位置，請依照自己的版本設定路徑位置</li><li>預設參數，MSBuild參數請參考 -<a href="https://docs.microsoft.com/zh-tw/visualstudio/msbuild/common-msbuild-project-properties" target="_blank" rel="noopener">一般 MSBuild 專案屬性</a><br><img src="/2018/01/07/Jenkins03/Jenkins03-msbuild04.jpg" alt></li></ol></li></ul>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]02-安裝與使用Git</title>
+      <link href="2018/01/07/Jenkins02/"/>
+      <url>2018/01/07/Jenkins02/</url>
+      
+        <content type="html"><![CDATA[<p>設定Jenkins使用Git幫我們抓取Visual Studio專案</p><a id="more"></a><h2 id="環境："><a href="#環境：" class="headerlink" title="環境："></a>環境：</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li><li>Git for windows </li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>下載與安裝 Git for windows - <a href="http://gitforwindows.org/" target="_blank" rel="noopener">按此下載</a></li><li>安裝Jenkins Git Plugin(Optional)</li><li>設定Git.exe位置</li></ul><h3 id="安裝Jenkins-Git-Plugin-Optional"><a href="#安裝Jenkins-Git-Plugin-Optional" class="headerlink" title="安裝Jenkins Git Plugin(Optional)"></a>安裝Jenkins Git Plugin(Optional)</h3><ul><li>在Jenkins首頁，點選管理Jenkins，管理外掛程式<br><img src="/2018/01/07/Jenkins02/Jenkins02-git01.jpg" alt></li><li>確認Git plugin 是否已安裝<br><img src="/2018/01/07/Jenkins02/Jenkins02-git02.jpg" alt></li></ul><h3 id="設定Git-exe位置"><a href="#設定Git-exe位置" class="headerlink" title="設定Git.exe位置"></a>設定Git.exe位置</h3><ul><li><p>在Jenkins首頁，點選管理Jenkins，點選Global Tool Configuration<br><img src="/2018/01/07/Jenkins02/Jenkins02-git03.jpg" alt></p></li><li><p>設定Git.exe名稱與位置</p></li></ul><ol><li>名稱</li><li>路徑位置：%ProgramFiles%/Git/bin/git.exe (Git for windows預設安裝的路徑)<br><img src="/2018/01/07/Jenkins02/Jenkins02-git04.jpg" alt></li></ol><p>到這邊就完成設定Jenkins使用Git，接下來要設定Jenkins使用MSBuild來幫我們建置專案</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>[Jenkins]01-安裝與設定Jenkins</title>
+      <link href="2018/01/07/Jenkins01/"/>
+      <url>2018/01/07/Jenkins01/</url>
+      
+        <content type="html"><![CDATA[<p>本系列文章會介紹如何在Windows環境安裝Jenkins，並從Git版本控制系統抓取Visual Studio 專案，建置完成後佈署至IIS</p><p>範例中的專案與Git位置都是使用我在github上的專案，讀者也可以自己替換成自己的專案位置。</p><a id="more"></a><h2 id="環境"><a href="#環境" class="headerlink" title="環境"></a>環境</h2><ul><li>Windows Server 2016</li></ul><h2 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h2><ul><li>Jenkins 2.98</li></ul><h2 id="步驟："><a href="#步驟：" class="headerlink" title="步驟："></a>步驟：</h2><ul><li>下載與安裝Jenkins(Windows版) - <a href="https://jenkins.io/download/" target="_blank" rel="noopener">按此下載</a></li><li>解鎖Jenkins的初始密碼 (路徑：%ProgramFiles(x86)%\Jenkins\secrets\initialAdminPassword)<br><img src="/2018/01/07/Jenkins01/Jenkins01-unlock.jpg" alt></li><li>選擇是否要自訂安裝的外掛<br><img src="/2018/01/07/Jenkins01/Jenkins01-customize.jpg" alt></li><li>選擇安裝建議的外掛<br><img src="/2018/01/07/Jenkins01/Jenkins01-customize-processing.jpg" alt></li><li>設定admin帳號<br><img src="/2018/01/07/Jenkins01/Jenkins01-setadmin.jpg" alt></li><li>設定完成<br><img src="/2018/01/07/Jenkins01/Jenkins01-ready.jpg" alt></li></ul><p>到這邊基本的Jenkins的安裝就已經完成了，接下來會介紹設定Jenkins利用Git幫我們抓取程式。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>開張</title>
+      <link href="2018/01/06/%E9%96%8B%E5%BC%B5/"/>
+      <url>2018/01/06/%E9%96%8B%E5%BC%B5/</url>
+      
+        <content type="html"><![CDATA[<p>這裡是布萊恩的技術相談室</p><p>主要會分享.NET相關技術與讀書心得</p><p>希望我的分享能夠帶給你一些幫助</p><p>有任何問題歡迎透過email與我聯繫 </p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 隨筆 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+  
+  
+</search>

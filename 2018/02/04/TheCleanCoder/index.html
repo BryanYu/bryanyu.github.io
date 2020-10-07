@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-tw">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+  <meta name="google-site-verification" content="uuzoda6eXvDoQJCq2J3JAY5gaNxTmhqCbxH8gBAoRRA">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="讀書筆記,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="無瑕的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 讀書筆記  為The Clean Code(中譯無瑕的程式碼)的下集，作者為Robert C. Martin，人稱Uncle Bob">
+<meta name="keywords" content="讀書筆記">
+<meta property="og:type" content="article">
+<meta property="og:title" content="無暇的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 筆記">
+<meta property="og:url" content="http://bryanyu.github.io/2018/02/04/TheCleanCoder/index.html">
+<meta property="og:site_name" content="布萊恩的技術相談室">
+<meta property="og:description" content="無瑕的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 讀書筆記  為The Clean Code(中譯無瑕的程式碼)的下集，作者為Robert C. Martin，人稱Uncle Bob">
+<meta property="og:locale" content="zh-tw">
+<meta property="og:image" content="http://bryanyu.github.io/2018/02/04/TheCleanCoder/books.jpg">
+<meta property="og:updated_time" content="2020-10-07T05:55:19.331Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="無暇的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 筆記">
+<meta name="twitter:description" content="無瑕的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 讀書筆記  為The Clean Code(中譯無瑕的程式碼)的下集，作者為Robert C. Martin，人稱Uncle Bob">
+<meta name="twitter:image" content="http://bryanyu.github.io/2018/02/04/TheCleanCoder/books.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"right","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://bryanyu.github.io/2018/02/04/TheCleanCoder/">
+
+
+
+
+
+  <title>無暇的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 筆記 | 布萊恩的技術相談室</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-tw">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-right page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">布萊恩的技術相談室</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首頁
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            標籤
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            歸檔
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
+            
+            檢索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://bryanyu.github.io/2018/02/04/TheCleanCoder/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BrÿanYu">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/uploads/sun.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="布萊恩的技術相談室">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">無暇的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 筆記</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">發表於</span>
+              
+              <time title="創建於" itemprop="dateCreated datePublished" datetime="2018-02-04T14:25:58+08:00">
+                2018-02-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/02/04/TheCleanCoder/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/02/04/TheCleanCoder/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2018/02/04/TheCleanCoder/" class="leancloud_visitors" data-flag-title="無暇的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 筆記">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">閱讀次數&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p> 無瑕的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 讀書筆記</p>
+<p> 為The Clean Code(中譯無瑕的程式碼)的下集，作者為Robert C. Martin，人稱Uncle Bob</p>
+<a id="more"></a>
+<h2 id="書籍介紹"><a href="#書籍介紹" class="headerlink" title="書籍介紹"></a>書籍介紹</h2><p><a href="https://www.tenlong.com.tw/products/9789862017883" target="_blank" rel="noopener">無瑕的程式碼 番外篇－專業程式設計師的生存之道 (The Clean Coder: A Code of Conduct for Professional Programmers) </a><br><img src="/2018/02/04/TheCleanCoder/books.jpg" alt></p>
+<p>本書是 無瑕的程式碼的下集，內容著重在如何成為一位<code>專業</code>的程式設計師。要成為一位專業的程式設計師，其實也就是成為一個負責任的人，對自己、自己寫的程式、公司、團隊、專案負責。這本書講述了滿多程式設計師會遇到的狀況，以及應對的方法，同時也提到了關於自身的技能培養與學習，我覺得是一本值得一看的書。</p>
+<h2 id="學習說不"><a href="#學習說不" class="headerlink" title="學習說不"></a>學習說不</h2><p>作者在這一章強調，在自己沒把握的情況下，要堅守自己的原則說不，不能說<code>試試看</code>這種話，因為試試看就代表是一種承諾，而且說出試試看就代表之前都沒有全力以赴，這是一種不專業的行為。</p>
+<p>我自己認為這個最難，因為主管與老闆們最不喜歡聽到的就是程式設計師說不，這會讓他們認為推託的感覺，我自己認為要提供一些資料輔助他們判斷，而不是憑空就說這個不行那個不行，要提出不行的原因在哪、以及一些解決方案，如果主管跟老闆們認為有時間壓力，就要跟他們溝通協調列出優先順序，商業價值含量高的先實作…等等，因為如果都全部照單全收，那最後累死的也會是自己，產出的東西質量也會很差。</p>
+<h2 id="學習說是"><a href="#學習說是" class="headerlink" title="學習說是"></a>學習說是</h2><p>這個主題主要講的是<code>承諾</code>，一旦你給出承諾就一定要達成，但如果是有牽涉到其他組織或部門的工作，就不要輕易的承諾會完成，只承諾自己可以控制的範圍。</p>
+<h2 id="寫程式"><a href="#寫程式" class="headerlink" title="寫程式"></a>寫程式</h2><p>作者在這一章講了幾個我覺得很有趣的內容，像是流態區(Flow zone) (又稱為神馳狀態)，一旦進入這個狀態之後寫程式的速度會飛快，會維持高度專注力。但作者認為在這個狀態會缺乏理性思考能力，反而對程式開發是有害的，只有在練習的時候這個狀態才會對你有幫助。</p>
+<p>另一個主題是談到寫程式的情緒，如果感到焦慮或是心煩氣躁的時候，先讓自己冷靜下來，整理好情緒再繼續開發，最好的方式是先將情緒處理好，不要帶進公司影響自己的工作。</p>
+<p>還有一個是關於幫助這件事，要成為一個專業的程式設計師，要不吝於幫助他人，也要學會請求別人的幫助。我自己就曾經遇過不願意接受別人幫助的同事，死命護住自己的地盤。我覺得程式設計是一種集體智慧，不是個人英雄式的單打獨鬥，一個人是走不遠的，果不其然，那位同事寫的程式發生問題，團隊的人都要幫他收拾殘局。我自己也是常常請其他同事幫我檢視看看我自己想的有沒有問題，因為明知道團隊有資源不用實在是太浪費了，況且同事們看法與角度一定與我不同，可以在這過程中學習。</p>
+<p>關於超時加班這件事，作者裡面也有提到，除非你自己可以擠出這些時間、短期加班最多不超過兩周、你的老闆要有後備方案，否則不要輕易答應加班。我自己遇過的狀況是老闆在專案延遲時就要你固定加時工作，但加時工作讓團隊產出的效率更為降低，因為休息時間不夠，隔天帶著前一天的疲勞來上班，變成惡性循環，前一天開發的可能不是功能，而是BUG了。</p>
+<h2 id="練習"><a href="#練習" class="headerlink" title="練習"></a>練習</h2><p>關於練習，作者提到Dojo(道場)與Kata(對打)，在工作之餘要經常練習，而且是利用<code>自己的時間</code>練習，因為雇主沒有義務要為你的職涯負責，作者也提到一周的工時是60小時，其中一周40(一天8小時)小時是為雇主工作，剩下的20小時是要為自己工作，等於一天要培養自己的技能3個小時。</p>
+<p>不過我自己認為，如果工作上負擔沒有那麼重的話，在公司的資源與時間可以好好利用。</p>
+<h2 id="測試"><a href="#測試" class="headerlink" title="測試"></a>測試</h2><p>關於測試，作者提了滿多建議，包含</p>
+<ul>
+<li><p>完成的定義：程式碼完成、所有測試通過、QA測試通過、業務單位確認過，才叫完成</p>
+</li>
+<li><p>TDD(測試驅動開發)：程式設計師應該要學會TDD，這才是專業的表現，要確保自己開發的程式是正確沒有缺陷的，以攻守比喻來說，TDD是<code>攻</code>，先寫功能在寫測試是<code>守</code>。</p>
+</li>
+<li><p>驗收測試：要由業務人員與QA一起來撰寫驗收測試，它是需求文件，用來描述系統會提供什麼樣的功能，如果要由開發人員來寫，要與<code>開發功能</code>的人不同。</p>
+</li>
+<li><p>持續整合與自動化：要能將這些測試自動化，透過持續整合機制幫我們運行這些測試，如果有發生測試失敗，團隊要立即停下來修正程式，直到測試可以完全通過為止。</p>
+</li>
+</ul>
+<p>另一方面探討測試的策略，由上而下為</p>
+<ul>
+<li><p>人工探索測試：就是非腳本化的測試，需要人工介入，確保系統在人工作業下運行良好。</p>
+</li>
+<li><p>系統測試：最終的整合測試，用來測試組裝好的系統各個部分是否可以正確交互操作，由架構師操作，在這個層級<code>必須包含性能與產能</code>測試</p>
+</li>
+<li><p>整合測試：是一種編排性的測試，確認元件組裝之後是否協調，由架構師撰寫，在這個層級已經可以進行<code>性能</code>與<code>產能</code>測試了</p>
+</li>
+<li><p>元件測試：是<code>驗收測試</code>的一種，對業務規則的一種驗收測試，由QA與業務人員撰寫。主要測試成功路徑的狀況</p>
+</li>
+<li><p>單元測試：由程式設計師撰寫，確保程式碼意圖沒有遭到破壞，且程式碼是運作正確的，要包含邊界與異常狀況</p>
+</li>
+</ul>
+<h2 id="時間管理"><a href="#時間管理" class="headerlink" title="時間管理"></a>時間管理</h2><p>作者有提到要管理自己的時間與專注力，要適時的拒絕沒效率的會議，以及要避免優先順序錯亂，另外也介紹了作者使用番茄工作法來管理自己的時間。</p>
+<p>關於會議，我自己遇過的是，會議的主持方完全沒有準備，在會議上天馬行空的討論好幾個小時，但會議結束後完全沒有結論與決策方向，可能過個幾天又要再來一次，自己的時間完全被開會這件事吃掉，在開會的途中也不太能開發程式，實在是很浪費時間，我覺得最好的做法是，先確定開會的主題與方案，在會議前先發給所有與會的人，說明我們的主題聚焦在這幾個部分，單就這幾個部分做討論，在開會的時候只要決定方向就好了。</p>
+<h2 id="結語"><a href="#結語" class="headerlink" title="結語"></a>結語</h2><p>　<br>整本書看下來，如果你的工作是從事程式開發，一定或多或少會遇到書中提及的狀況，這時候就會覺得自己並不孤單，因為連大師級的作者都會遇到了，沒道理自己不會遇到，我想作者就是經歷過這些，也有一套很好的處理的原則與方法，所以才會成為大師的吧。所以當你遇到困境，不知道該怎麼處理的時候，來翻翻這本書吧，或許大師的智慧能夠幫助你度過困境。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/讀書筆記/" rel="tag"># 讀書筆記</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/01/24/ThePhoenixProject/" rel="next" title="鳳凰項目-一個IT運維的傳奇故事(沙盤特別版) (簡體中文) 筆記">
+                <i class="fa fa-chevron-left"></i> 鳳凰項目-一個IT運維的傳奇故事(沙盤特別版) (簡體中文) 筆記
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/02/21/SoftSkills/" rel="prev" title="軟技能-代碼以外的生存指南(簡體中文) 筆記">
+                軟技能-代碼以外的生存指南(簡體中文) 筆記 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目錄
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            本站概覽
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/uploads/sun.jpg" alt="BrÿanYu">
+            
+              <p class="site-author-name" itemprop="name">BrÿanYu</p>
+              <p class="site-description motion-element" itemprop="description">偶爾滾來滾去的人生</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">39</span>
+                  <span class="site-state-item-name">文章</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">22</span>
+                  <span class="site-state-item-name">標籤</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/BryanYu" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:d58526@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#書籍介紹"><span class="nav-number">1.</span> <span class="nav-text">書籍介紹</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#學習說不"><span class="nav-number">2.</span> <span class="nav-text">學習說不</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#學習說是"><span class="nav-number">3.</span> <span class="nav-text">學習說是</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#寫程式"><span class="nav-number">4.</span> <span class="nav-text">寫程式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#練習"><span class="nav-number">5.</span> <span class="nav-text">練習</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#測試"><span class="nav-number">6.</span> <span class="nav-text">測試</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#時間管理"><span class="nav-number">7.</span> <span class="nav-text">時間管理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#結語"><span class="nav-number">8.</span> <span class="nav-text">結語</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BrÿanYu</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 強力驅動</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主題 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://bryanyublog.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://bryanyu.github.io/2018/02/04/TheCleanCoder/';
+          this.page.identifier = '2018/02/04/TheCleanCoder/';
+          this.page.title = '無暇的程式碼番外篇-專業程式設計師的生存之道(The Clean Coder) 筆記';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://bryanyublog.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("3zAzRcMvYP7p37WSEiDtQG5j-gzGzoHsz", "n25466E8SpOdpIYn9A925L6Q");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
